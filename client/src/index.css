@@ -11,8 +11,8 @@
     overscroll-behavior: none;
     width: 100%;
     max-width: 100%;
-    height: 100%;
-    overflow: hidden;
+    overflow-x: hidden;
+    overflow-y: auto;
   }
   body {
     font-family: 'Plus Jakarta Sans', sans-serif;
@@ -22,16 +22,18 @@
     overscroll-behavior: none;
     width: 100%;
     max-width: 100%;
-    height: 100%;
     margin: 0;
-    overflow: hidden;
+    overflow-x: hidden;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
     touch-action: pan-y;
   }
   #root {
     width: 100%;
     max-width: 100%;
-    height: 100%;
-    overflow: hidden;
+    min-height: 100vh;
+    min-height: 100dvh;
+    overflow-x: hidden;
   }
 }
 
@@ -133,14 +135,14 @@
   width: 100%;
   max-width: 430px;
   margin: 0 auto;
-  height: 100%;
-  height: 100dvh;
+  min-height: 100vh;
+  min-height: 100dvh;
   display: flex;
   flex-direction: column;
   position: relative;
   background: linear-gradient(160deg, #0d0d14 0%, #131320 60%, #1a0d24 100%);
   overflow-x: hidden;
-  overflow-y: auto;
+  overflow-y: visible;
   -webkit-overflow-scrolling: touch;
   touch-action: pan-y;
 }
