@@ -24,6 +24,13 @@ export default function Home() {
     error: '',
   });
   const [showSplash, setShowSplash] = useState(true);
+  const [localHour, setLocalHour] = useState(() => new Date().getHours());
+
+  // Update hour every minute so emoji changes live without refresh
+  useEffect(() => {
+    const t = setInterval(() => setLocalHour(new Date().getHours()), 60000);
+    return () => clearInterval(t);
+  }, []);
 
   const pricing = useMemo(
     () => resolvePricing(live.state || fallbackState, live.city || fallbackCity),
@@ -217,7 +224,7 @@ export default function Home() {
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 24, fontWeight: 800, color: '#fff' }}>{live.locationLabel}</div>
                   <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginTop: 2 }}>
-                    {getWeatherEmoji(live.weather?.condition)} {live.weather?.condition || 'Waiting for signal'}
+                    {getWeatherEmoji(live.weather?.condition, localHour)} {live.weather?.condition || 'Waiting for signal'}
                   </div>
                 </div>
                 <div style={{ fontSize: 36, fontWeight: 900, color: '#f97316', whiteSpace: 'nowrap' }}>
@@ -400,32 +407,23 @@ function formatLocationLabel(city, state) {
   return [city, state].filter(Boolean).join(', ');
 }
 
-function getWeatherEmoji(condition, weatherCode) {
-  const hour = new Date().getHours();
-  const isNight = hour < 6 || hour >= 20;
-  const isDawn = hour >= 5 && hour < 7;
-  const isDusk = hour >= 18 && hour < 20;
+function getWeatherEmoji(condition, hour) {
+  const h = hour !== undefined ? hour : new Date().getHours();
+  const isNight = h < 6 || h >= 20;
+  const isDawn = h >= 5 && h < 7;
+  const isDusk = h >= 18 && h < 20;
 
   if (!condition) return isNight ? '🌙' : '☀️';
 
   const c = condition.toLowerCase();
-
-  // Thunderstorm always same regardless of time
   if (c.includes('thunder') || c.includes('storm')) return '⛈️';
-  // Rain/drizzle
   if (c.includes('heavy rain') || c.includes('heavy shower')) return '🌧️';
   if (c.includes('rain') || c.includes('drizzle') || c.includes('shower')) return isNight ? '🌧️' : '🌦️';
-  // Snow
   if (c.includes('snow') || c.includes('blizzard')) return '❄️';
-  // Fog
-  if (c.includes('fog') || c.includes('mist')) return isNight ? '🌫️' : '🌫️';
-  // Overcast/cloudy
+  if (c.includes('fog') || c.includes('mist')) return '🌫️';
   if (c.includes('overcast')) return '☁️';
-  if (c.includes('cloudy') || c.includes('partly')) return isNight ? '☁️' : '⛅';
+  if (c.includes('cloudy') || c.includes('partly')) return isNight ? '🌙' : '⛅';
   if (c.includes('mainly clear')) return isNight ? '🌙' : isDawn ? '🌅' : isDusk ? '🌇' : '🌤️';
-  // Clear
   if (c.includes('clear')) return isNight ? '🌙' : isDawn ? '🌅' : isDusk ? '🌇' : '☀️';
-
-  // Default fallback
   return isNight ? '🌙' : isDawn ? '🌅' : isDusk ? '🌇' : '☀️';
 }
