@@ -20,7 +20,6 @@
     color: #f0ede8;
     -webkit-font-smoothing: antialiased;
     overscroll-behavior: none;
-    user-select: none;
     width: 100%;
     max-width: 100%;
     margin: 0;
@@ -135,23 +134,22 @@
   width: 100%;
   max-width: 430px;
   margin: 0 auto;
-  height: 100dvh;
+  min-height: 100vh;
   min-height: 100dvh;
   display: flex;
   flex-direction: column;
   position: relative;
   background: linear-gradient(160deg, #0d0d14 0%, #131320 60%, #1a0d24 100%);
   overflow-x: hidden;
-  overflow-y: hidden;
-  touch-action: manipulation;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
 }
 
 .page-content {
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
-  overflow-x: hidden;
-  -webkit-overflow-scrolling: touch;
+  flex: 1 0 auto;
+  min-height: auto;
+  overflow: visible;
   padding-bottom: 96px;
 }
 
