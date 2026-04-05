@@ -1,0 +1,6 @@
+{
+  "appId": "com.kavach.forwork",
+  "appName": "KavachForWork",
+  "webDir": "dist",
+  "bundledWebRuntime": false
+}
