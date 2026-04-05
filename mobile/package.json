@@ -1,0 +1,22 @@
+{
+  "name": "kavachforwork-mobile",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "build:web": "cd ../client && npm run build",
+    "sync": "npm run build:web && npx cap sync android",
+    "open:android": "npx cap open android"
+  },
+  "dependencies": {
+    "@capacitor/android": "^5.7.2",
+    "@capacitor/cli": "^5.7.2",
+    "@capacitor/core": "^5.7.2",
+    "@capacitor/device": "^5.0.7",
+    "@capacitor/geolocation": "^5.0.7",
+    "@capacitor/network": "^5.0.7"
+  },
+  "devDependencies": {
+    "typescript": "^6.0.2"
+  }
+}

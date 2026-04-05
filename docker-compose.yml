@@ -1,0 +1,79 @@
+version: '3.8'
+
+services:
+  # MongoDB
+  mongo:
+    image: mongo:7
+    container_name: kavach-mongo
+    restart: unless-stopped
+    volumes:
+      - mongo_data:/data/db
+    ports:
+      - "27017:27017"
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # AI Fraud Detection Service (FastAPI)
+  ai:
+    build:
+      context: ./ai
+      dockerfile: Dockerfile
+    container_name: kavach-ai
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./ai:/app
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+
+  # Node/Express Backend
+  server:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: kavach-server
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    environment:
+      - NODE_ENV=production
+      - MONGODB_URI=mongodb://mongo:27017/kavachforwork
+      - AI_SERVICE_URL=http://ai:8000
+      - JWT_SECRET=${JWT_SECRET:-kavach_docker_secret}
+      - WEATHERSTACK_API_KEY=${WEATHERSTACK_API_KEY:-your_weatherstack_api_key_here}
+      - CLIENT_URL=${CLIENT_URL:-http://localhost:3000}
+      - ADMIN_EMAIL=${ADMIN_EMAIL:-admin@kavachforwork.in}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-Admin@Kavach2024}
+    depends_on:
+      mongo:
+        condition: service_healthy
+      ai:
+        condition: service_healthy
+    volumes:
+      - ./server:/app
+      - /app/node_modules
+
+  # React Frontend (served by nginx)
+  client:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+      args:
+        - VITE_API_URL=http://localhost:5000/api
+        - VITE_SOCKET_URL=http://localhost:5000
+    container_name: kavach-client
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    depends_on:
+      - server
+
+volumes:
+  mongo_data:

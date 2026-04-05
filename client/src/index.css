@@ -1,0 +1,249 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── Google Fonts already loaded in index.html ── */
+
+@layer base {
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html { scroll-behavior: smooth; overscroll-behavior: none; }
+  body {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    background: #0d0d14;
+    color: #f0ede8;
+    -webkit-font-smoothing: antialiased;
+    overscroll-behavior: none;
+    user-select: none;
+  }
+}
+
+/* ─── GLASS TOKENS ──────────────────────────────────────────────────── */
+:root {
+  --glass-bg: rgba(255,255,255,0.06);
+  --glass-border: rgba(255,255,255,0.12);
+  --glass-blur: 24px;
+  --orange: #f97316;
+  --orange-glow: rgba(249,115,22,0.35);
+  --green: #22c55e;
+  --green-glow: rgba(34,197,94,0.35);
+  --red: #ef4444;
+  --red-glow: rgba(239,68,68,0.45);
+  --amber: #f59e0b;
+  --amber-glow: rgba(245,158,11,0.35);
+  --surface: #131320;
+  --surface-2: #1a1a2e;
+  --text-muted: rgba(240,237,232,0.5);
+}
+
+/* ─── GLASS CARD ─────────────────────────────────────────────────────── */
+@layer components {
+  .glass {
+    background: var(--glass-bg);
+    backdrop-filter: blur(var(--glass-blur));
+    -webkit-backdrop-filter: blur(var(--glass-blur));
+    border: 1px solid var(--glass-border);
+    border-radius: 20px;
+  }
+  .glass-strong {
+    background: rgba(255,255,255,0.10);
+    backdrop-filter: blur(32px);
+    -webkit-backdrop-filter: blur(32px);
+    border: 1px solid rgba(255,255,255,0.18);
+    border-radius: 20px;
+  }
+
+  /* Legacy compat */
+  .card { @apply glass p-5; }
+
+  .btn-primary {
+    @apply bg-orange-500 text-white font-semibold px-6 py-3.5 rounded-2xl
+           transition-all duration-200 active:scale-95 font-display text-sm tracking-wide;
+    box-shadow: 0 0 20px var(--orange-glow);
+  }
+  .btn-primary:hover { box-shadow: 0 0 32px var(--orange-glow); }
+
+  .btn-secondary {
+    @apply glass text-orange-400 font-semibold px-6 py-3.5 rounded-2xl
+           transition-all duration-200 active:scale-95 font-display text-sm;
+  }
+
+  .input-field {
+    @apply w-full px-4 py-3.5 rounded-2xl border text-sm font-body placeholder-white/30
+           transition-all outline-none;
+    background: rgba(255,255,255,0.07);
+    border-color: rgba(255,255,255,0.12);
+    color: #fff;
+  }
+  .input-field:focus {
+    border-color: var(--orange);
+    box-shadow: 0 0 0 3px var(--orange-glow);
+  }
+  .input-field option,
+  .input-field optgroup {
+    background: var(--surface);
+    color: #fff;
+  }
+
+  .badge-active {
+    @apply inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold;
+    background: rgba(34,197,94,0.15);
+    color: #4ade80;
+    border: 1px solid rgba(34,197,94,0.25);
+  }
+  .badge-inactive {
+    @apply inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold;
+    background: rgba(255,255,255,0.07);
+    color: rgba(255,255,255,0.45);
+    border: 1px solid rgba(255,255,255,0.10);
+  }
+  .badge-warning {
+    @apply inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold;
+    background: rgba(245,158,11,0.15);
+    color: #fbbf24;
+    border: 1px solid rgba(245,158,11,0.25);
+  }
+  .badge-danger {
+    @apply inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold;
+    background: rgba(239,68,68,0.15);
+    color: #f87171;
+    border: 1px solid rgba(239,68,68,0.25);
+  }
+}
+
+/* ─── PHONE CHROME ───────────────────────────────────────────────────── */
+.phone-screen {
+  max-width: 430px;
+  margin: 0 auto;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  background: linear-gradient(160deg, #0d0d14 0%, #131320 60%, #1a0d24 100%);
+}
+
+/* ─── RISK RING ──────────────────────────────────────────────────────── */
+@keyframes ring-pulse-green {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(34,197,94,0.6), 0 0 0 8px rgba(34,197,94,0.15); }
+  50% { box-shadow: 0 0 0 12px rgba(34,197,94,0), 0 0 0 20px rgba(34,197,94,0); }
+}
+@keyframes ring-pulse-orange {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(249,115,22,0.7), 0 0 0 8px rgba(249,115,22,0.2); }
+  50% { box-shadow: 0 0 0 16px rgba(249,115,22,0), 0 0 0 28px rgba(249,115,22,0); }
+}
+@keyframes ring-flash-red {
+  0%, 49%, 100% { box-shadow: 0 0 0 0 rgba(239,68,68,0.9), 0 0 0 10px rgba(239,68,68,0.3); border-color: #ef4444; }
+  50%, 99% { box-shadow: 0 0 32px rgba(239,68,68,0.8), 0 0 64px rgba(239,68,68,0.4); border-color: #fca5a5; }
+}
+.ring-green  { animation: ring-pulse-green  2.5s ease-in-out infinite; border: 3px solid var(--green); }
+.ring-orange { animation: ring-pulse-orange 1.8s ease-in-out infinite; border: 3px solid var(--amber); }
+.ring-red    { animation: ring-flash-red    0.9s ease-in-out infinite; border: 3px solid var(--red); }
+
+/* ─── SWIPE SLIDER ───────────────────────────────────────────────────── */
+.swipe-track {
+  position: relative;
+  height: 60px;
+  border-radius: 30px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.10);
+  overflow: hidden;
+  cursor: pointer;
+}
+.swipe-fill {
+  position: absolute;
+  inset-y: 0; left: 0;
+  border-radius: 30px;
+  transition: width 0.05s linear;
+  pointer-events: none;
+}
+.swipe-thumb {
+  position: absolute;
+  top: 6px; left: 6px;
+  width: 48px; height: 48px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  transition: transform 0.05s linear, box-shadow 0.2s;
+  cursor: grab;
+  touch-action: none;
+}
+.swipe-thumb:active { cursor: grabbing; }
+.swipe-label {
+  position: absolute;
+  inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  pointer-events: none;
+  transition: opacity 0.2s;
+}
+
+/* ─── WAVEFORM ───────────────────────────────────────────────────────── */
+.waveform-canvas {
+  width: 100%;
+  height: 56px;
+  display: block;
+}
+
+/* ─── FAB ─────────────────────────────────────────────────────────────── */
+@keyframes fab-ping {
+  0% { transform: scale(1); opacity: 0.8; }
+  100% { transform: scale(1.5); opacity: 0; }
+}
+.fab-ping::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: var(--orange);
+  animation: fab-ping 2s ease-out infinite;
+  pointer-events: none;
+}
+
+/* ─── MICRO INTERACTIONS ─────────────────────────────────────────────── */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.heat-shimmer {
+  background: linear-gradient(90deg, rgba(255,255,255,0.04) 25%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.04) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 2s infinite;
+  border-radius: 12px;
+}
+
+@keyframes shield-pulse { 
+  0%, 100% { box-shadow: 0 0 0 0 rgba(34,197,94,0.6); }
+  50% { box-shadow: 0 0 0 20px rgba(34,197,94,0); }
+}
+.shield-active { animation: shield-pulse 2s ease-in-out infinite; }
+
+@keyframes float-up {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.fade-up { animation: float-up 0.5s ease forwards; }
+
+/* ─── BOTTOM NAV ─────────────────────────────────────────────────────── */
+.bottom-nav {
+  position: fixed;
+  bottom: 0; left: 50%; transform: translateX(-50%);
+  width: 100%; max-width: 430px;
+  height: 72px;
+  background: rgba(13,13,20,0.92);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-top: 1px solid rgba(255,255,255,0.08);
+  display: flex;
+  align-items: center;
+  z-index: 100;
+}
+
+/* ─── LEAFLET OVERRIDES ──────────────────────────────────────────────── */
+.leaflet-container { border-radius: 16px; }
+
+/* ─── STATUS BAR PLACEHOLDER ─────────────────────────────────────────── */
+.status-bar {
+  height: env(safe-area-inset-top, 0px);
+  min-height: 0;
+}
