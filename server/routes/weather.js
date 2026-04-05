@@ -21,9 +21,23 @@ const OPEN_METEO_FORECAST_URL = 'https://api.open-meteo.com/v1/forecast';
 const OPEN_METEO_GEOCODING_URL = 'https://geocoding-api.open-meteo.com/v1/search';
 const IPV4_HTTPS_AGENT = new https.Agent({ family: 4 });
 
+function canUseWeatherStack() {
+  return typeof WEATHERSTACK_KEY === 'string' && WEATHERSTACK_KEY.trim().length > 0;
+}
+
 // ─── Heatwave Check (primary oracle for payout trigger) ───────────────────────
 router.get('/heatwave', protect, async (req, res) => {
   try {
+    if (!canUseWeatherStack()) {
+      const fallback = await getOpenMeteoWeather({
+        lat: req.query.lat,
+        lng: req.query.lng,
+        city: req.query.city,
+        user: req.user,
+      });
+      return res.json(buildHeatwaveResponse(fallback, req.user));
+    }
+
     const { lat, lng, city } = req.query;
 
     // Build query: prefer coordinates, fallback to city name
@@ -97,6 +111,19 @@ router.get('/heatwave', protect, async (req, res) => {
 // ─── Current Weather ──────────────────────────────────────────────────────────
 router.get('/current', async (req, res) => {
   try {
+    if (!canUseWeatherStack()) {
+      const fallback = await getOpenMeteoWeather({ city: req.query.city || 'Jaipur' });
+      return res.json({
+        city: fallback.city,
+        temperature: fallback.temperature,
+        feelsLike: fallback.feelsLike,
+        humidity: fallback.humidity,
+        condition: fallback.condition,
+        weatherIcon: null,
+        isHeatwave: fallback.temperature >= HEATWAVE_THRESHOLD,
+      });
+    }
+
     const { city = 'Jaipur' } = req.query;
 
     const response = await axios.get('http://api.weatherstack.com/current', {

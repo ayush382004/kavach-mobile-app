@@ -72,9 +72,10 @@ router.post(
       const { location, weather, sensorData, aqi } = req.body;
 
       let fraudAnalysis = {
-        fraudScore: 50,
-        isLegit: false,
-        modelVersion: 'sentry_v1',
+        fraudScore: 10,
+        isLegit: true,
+        modelVersion: 'sentry_v1_fallback',
+        reviewRequired: false,
       };
 
       let weatherOracle = null;
@@ -98,7 +99,14 @@ router.post(
         fraudAnalysis = aiResponse.data;
       } catch (aiErr) {
         console.error('[Claims] AI service error:', aiErr.message);
-        fraudAnalysis.reviewRequired = true;
+        fraudAnalysis = {
+          ...fraudAnalysis,
+          reviewRequired: true,
+          degradedMode: true,
+          signals: {
+            aiOfflineFallback: true,
+          },
+        };
       }
 
       if (AI_WEATHER_ORACLE_ENABLED) {
@@ -133,9 +141,9 @@ router.post(
         status = 'rejected';
         fraudAnalysis.reviewRequired = true;
         fraudAnalysis.fraudScore = Math.max(fraudAnalysis.fraudScore || 0, sensorIntegrity.isMockLocation ? 100 : 50);
-      } else if ((fraudAnalysis.fraudScore || 0) >= 50) {
+      } else if (!fraudAnalysis.degradedMode && (fraudAnalysis.fraudScore || 0) >= 50) {
         status = 'rejected';
-      } else if ((fraudAnalysis.fraudScore || 0) >= 20) {
+      } else if (!fraudAnalysis.degradedMode && (fraudAnalysis.fraudScore || 0) >= 20) {
         status = 'flagged';
         fraudAnalysis.reviewRequired = true;
       } else {
