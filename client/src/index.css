@@ -6,7 +6,13 @@
 
 @layer base {
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-  html { scroll-behavior: smooth; overscroll-behavior: none; }
+  html {
+    scroll-behavior: smooth;
+    overscroll-behavior: none;
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+  }
   body {
     font-family: 'Plus Jakarta Sans', sans-serif;
     background: #0d0d14;
@@ -14,6 +20,15 @@
     -webkit-font-smoothing: antialiased;
     overscroll-behavior: none;
     user-select: none;
+    width: 100%;
+    max-width: 100%;
+    margin: 0;
+    overflow-x: hidden;
+  }
+  #root {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
   }
 }
 
@@ -112,6 +127,7 @@
 
 /* ─── PHONE CHROME ───────────────────────────────────────────────────── */
 .phone-screen {
+  width: 100%;
   max-width: 430px;
   margin: 0 auto;
   min-height: 100dvh;
@@ -119,6 +135,8 @@
   flex-direction: column;
   position: relative;
   background: linear-gradient(160deg, #0d0d14 0%, #131320 60%, #1a0d24 100%);
+  overflow-x: hidden;
+  touch-action: pan-y;
 }
 
 /* ─── RISK RING ──────────────────────────────────────────────────────── */
