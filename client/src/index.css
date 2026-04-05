@@ -29,6 +29,11 @@
     justify-content: center;
     background: #0d0d14;
   }
+
+  /* Allow text selection globally */
+  * { user-select: text; -webkit-user-select: text; }
+  /* But keep tap highlight off */
+  * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
 }
 
 /* ─── GLASS TOKENS ──────────────────────────────────────────────────── */
@@ -139,6 +144,29 @@
   -webkit-overflow-scrolling: touch;
   overscroll-behavior-y: contain;
   scroll-behavior: smooth;
+}
+
+/* Tablet: expand to use more screen */
+@media (min-width: 600px) {
+  .phone-screen {
+    max-width: 600px;
+    border-radius: 0;
+  }
+}
+
+/* Laptop / Desktop: wider layout */
+@media (min-width: 1024px) {
+  #root {
+    align-items: flex-start;
+  }
+  .phone-screen {
+    max-width: 900px;
+    border-left: 1px solid rgba(255,255,255,0.05);
+    border-right: 1px solid rgba(255,255,255,0.05);
+  }
+  .page-content {
+    padding-bottom: 120px;
+  }
 }
 
 .page-content {
