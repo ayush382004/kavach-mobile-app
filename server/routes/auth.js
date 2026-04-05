@@ -57,11 +57,9 @@ router.post(
       const detectedState = canonicalizeState(locationVerification?.detectedState || '');
       const pricing = resolvePricing(selectedState, city);
 
-      if (selectedState !== detectedState) {
-        return res.status(400).json({
-          error: `Selected state ${selectedState} does not match detected location ${detectedState}.`,
-          code: 'LOCATION_STATE_MISMATCH',
-        });
+      // Log mismatch as warning but don't block — GPS can be imprecise on mobile/webview
+      if (selectedState !== detectedState && detectedState) {
+        console.warn(`[Auth] State mismatch: selected=${selectedState}, detected=${detectedState}`);
       }
 
       const existingUser = await User.findOne({
