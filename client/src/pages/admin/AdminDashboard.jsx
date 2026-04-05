@@ -119,7 +119,7 @@ export default function AdminDashboard() {
     : [];
 
   return (
-    <div className="min-h-screen bg-kavach-warm font-body">
+    <div style={{ minHeight: '100vh', background: '#fafaf9', fontFamily: "'Inter','Outfit',sans-serif", overflowY: 'auto' }}>
       <nav className="sticky top-0 z-50 border-b border-orange-100 bg-white shadow-sm">
         <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4">
           <div className="flex items-center gap-3">
@@ -177,15 +177,15 @@ export default function AdminDashboard() {
                 <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
                   <KPICard label="Total Users" value={stats?.overview?.totalUsers || 0} />
                   <KPICard label="Active Insured" value={stats?.overview?.activeInsured || 0} />
-                  <KPICard label="Total Revenue" value={`Rs ${stats?.overview?.totalRevenue || 0}`} />
-                  <KPICard label="Net Profit" value={`Rs ${stats?.overview?.netProfit || 0}`} />
+                  <KPICard label="Total Revenue" value={`₹${stats?.overview?.totalRevenue || 0}`} />
+                  <KPICard label="Net Profit" value={`₹${stats?.overview?.netProfit || 0}`} />
                 </div>
 
                 <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
                   <KPICard label="Total Claims" value={stats?.overview?.totalClaims || 0} />
                   <KPICard label="Approved" value={stats?.overview?.approvedClaims || 0} />
                   <KPICard label="Flagged Fraud" value={stats?.overview?.flaggedClaims || 0} />
-                  <KPICard label="Total Payouts" value={`Rs ${stats?.overview?.totalPayouts || 0}`} />
+                  <KPICard label="Total Payouts" value={`₹${stats?.overview?.totalPayouts || 0}`} />
                 </div>
 
                 <div className="card">
@@ -276,7 +276,7 @@ export default function AdminDashboard() {
                   <KPICard label="Total Analyzed" value={fraudStats?.totalAnalyzed || 0} />
                   <KPICard label="Legitimate" value={fraudStats?.legitimate || 0} />
                   <KPICard label="Flagged Fraud" value={fraudStats?.flaggedFraud || 0} />
-                  <KPICard label="Money Saved" value={`Rs ${Math.round(fraudStats?.moneySaved || 0)}`} />
+                  <KPICard label="Money Saved" value={`₹${Math.round(fraudStats?.moneySaved || 0)}`} />
                 </div>
 
                 <div className="grid gap-4 md:grid-cols-2">
@@ -369,7 +369,7 @@ function ClaimsTable({ claims, onAction, reviewingId, compact }) {
                 <ReviewReason claim={claim} />
               </td>
               <td className="px-2 py-3 font-semibold text-green-600">
-                {claim.payoutAmount > 0 ? `Rs ${claim.payoutAmount}` : '-'}
+                {claim.payoutAmount > 0 ? `₹${claim.payoutAmount}` : '-'}
               </td>
               <td className="px-2 py-3 text-xs text-gray-400">
                 {new Date(claim.createdAt).toLocaleDateString('en-IN', {

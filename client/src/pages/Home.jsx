@@ -400,11 +400,32 @@ function formatLocationLabel(city, state) {
   return [city, state].filter(Boolean).join(', ');
 }
 
-function getWeatherEmoji(condition) {
-  if (!condition) return '☀️';
+function getWeatherEmoji(condition, weatherCode) {
+  const hour = new Date().getHours();
+  const isNight = hour < 6 || hour >= 20;
+  const isDawn = hour >= 5 && hour < 7;
+  const isDusk = hour >= 18 && hour < 20;
+
+  if (!condition) return isNight ? '🌙' : '☀️';
+
   const c = condition.toLowerCase();
-  if (c.includes('rain') || c.includes('drizzle') || c.includes('shower') || c.includes('thunder')) return '🌧️';
-  if (c.includes('cloud') || c.includes('overcast')) return '☁️';
-  if (c.includes('fog')) return '🌫️';
-  return '☀️';
+
+  // Thunderstorm always same regardless of time
+  if (c.includes('thunder') || c.includes('storm')) return '⛈️';
+  // Rain/drizzle
+  if (c.includes('heavy rain') || c.includes('heavy shower')) return '🌧️';
+  if (c.includes('rain') || c.includes('drizzle') || c.includes('shower')) return isNight ? '🌧️' : '🌦️';
+  // Snow
+  if (c.includes('snow') || c.includes('blizzard')) return '❄️';
+  // Fog
+  if (c.includes('fog') || c.includes('mist')) return isNight ? '🌫️' : '🌫️';
+  // Overcast/cloudy
+  if (c.includes('overcast')) return '☁️';
+  if (c.includes('cloudy') || c.includes('partly')) return isNight ? '☁️' : '⛅';
+  if (c.includes('mainly clear')) return isNight ? '🌙' : isDawn ? '🌅' : isDusk ? '🌇' : '🌤️';
+  // Clear
+  if (c.includes('clear')) return isNight ? '🌙' : isDawn ? '🌅' : isDusk ? '🌇' : '☀️';
+
+  // Default fallback
+  return isNight ? '🌙' : isDawn ? '🌅' : isDusk ? '🌇' : '☀️';
 }
