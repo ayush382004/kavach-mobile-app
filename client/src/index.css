@@ -291,6 +291,17 @@
   z-index: 100;
 }
 
+@media (orientation: landscape) and (max-height: 540px) {
+  .phone-screen,
+  .bottom-nav {
+    max-width: 100%;
+  }
+
+  .page-content {
+    padding-bottom: 84px;
+  }
+}
+
 /* ─── LEAFLET OVERRIDES ──────────────────────────────────────────────── */
 .leaflet-container { border-radius: 16px; }
 

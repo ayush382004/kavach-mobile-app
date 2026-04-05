@@ -5,8 +5,10 @@ import { useSensors } from '../../hooks/useSensors.js';
 import { useAuth } from '../../hooks/useAuth.jsx';
 import BottomNav from '../../components/BottomNav.jsx';
 import { getCurrentCoordinates, reverseGeocodeIndia } from '../../utils/location.js';
+import { resolvePricing } from '../../utils/pricing.js';
 
 const STEPS = ['Check Weather', 'Sensors', 'AI Verifying', 'Result'];
+const HEATWAVE_THRESHOLD = 45;
 
 export default function ClaimPage() {
   const { user, refreshUser } = useAuth();
@@ -26,10 +28,12 @@ export default function ClaimPage() {
     setChecking(true); setError('');
     try {
       const query = { city: user?.city || 'Jaipur', state: user?.state || '' };
+      let localCoords = null;
       try {
         const coordsData = await getCurrentCoordinates();
         const place = await reverseGeocodeIndia(coordsData.latitude, coordsData.longitude).catch(() => null);
         const coords = { lat: coordsData.latitude, lng: coordsData.longitude };
+        localCoords = coords;
         setSensors(prev => ({ ...prev, _coords: coords }));
         query.lat = coords.lat;
         query.lng = coords.lng;
@@ -37,9 +41,22 @@ export default function ClaimPage() {
         if (place?.state) query.state = place.state;
       } catch { }
 
-      const { data } = await weatherAPI.getHeatwave(query);
-      setWeather(data); setStep(1);
-    } catch (err) { setError(err.response?.data?.error || 'Could not fetch weather. Check internet connection.'); }
+      try {
+        const { data } = await weatherAPI.getHeatwave(query);
+        setWeather(data);
+        setStep(1);
+      } catch {
+        const fallback = await getClientWeatherFallback({
+          lat: query.lat,
+          lng: query.lng,
+          city: query.city,
+          state: query.state,
+          coords: localCoords,
+        });
+        setWeather(fallback);
+        setStep(1);
+      }
+    } catch (err) { setError(err.response?.data?.error || err.message || 'Could not fetch weather. Check internet connection.'); }
     finally { setChecking(false); }
   };
 
@@ -209,4 +226,80 @@ export default function ClaimPage() {
       <BottomNav />
     </div>
   );
+}
+
+async function getClientWeatherFallback({ lat, lng, city, state, coords }) {
+  let targetLat = lat;
+  let targetLng = lng;
+  let resolvedCity = city || 'Jaipur';
+
+  if (!targetLat || !targetLng) {
+    const geocodeUrl = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city || 'Jaipur')}&count=1&language=en&format=json`;
+    const geoResponse = await fetch(geocodeUrl);
+    if (!geoResponse.ok) throw new Error('Weather API unavailable. Try again.');
+
+    const geoData = await geoResponse.json();
+    const match = geoData?.results?.[0];
+    if (!match) throw new Error('Could not verify weather for this location.');
+
+    targetLat = match.latitude;
+    targetLng = match.longitude;
+    resolvedCity = match.name || resolvedCity;
+  }
+
+  const forecastUrl =
+    `https://api.open-meteo.com/v1/forecast?latitude=${encodeURIComponent(targetLat)}` +
+    `&longitude=${encodeURIComponent(targetLng)}` +
+    '&current=temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,precipitation,weather_code' +
+    '&timezone=auto&forecast_days=1';
+
+  const weatherResponse = await fetch(forecastUrl);
+  if (!weatherResponse.ok) throw new Error('Weather API unavailable. Try again.');
+
+  const weatherData = await weatherResponse.json();
+  const current = weatherData?.current;
+  if (!current) throw new Error('Weather API unavailable. Try again.');
+
+  const pricing = resolvePricing(state, resolvedCity);
+  const temperature = Number(current.temperature_2m);
+  const isHeatwave = temperature >= HEATWAVE_THRESHOLD;
+
+  return {
+    city: resolvedCity,
+    temperature,
+    feelsLike: Number(current.apparent_temperature),
+    humidity: Number(current.relative_humidity_2m),
+    windSpeed: Number(current.wind_speed_10m),
+    precipitation: Number(current.precipitation || 0),
+    condition: getWeatherCodeLabel(current.weather_code),
+    weatherIcon: null,
+    isHeatwave,
+    payoutAmount: isHeatwave ? pricing.maxPayout : 0,
+    payoutTier: isHeatwave ? 'heatwave' : 'none',
+    pricing,
+    source: coords ? 'Open-Meteo direct' : 'Open-Meteo fallback',
+  };
+}
+
+function getWeatherCodeLabel(code) {
+  const labels = {
+    0: 'Clear sky',
+    1: 'Mainly clear',
+    2: 'Partly cloudy',
+    3: 'Overcast',
+    45: 'Fog',
+    48: 'Fog',
+    51: 'Light drizzle',
+    53: 'Drizzle',
+    55: 'Dense drizzle',
+    61: 'Slight rain',
+    63: 'Rain',
+    65: 'Heavy rain',
+    80: 'Rain showers',
+    81: 'Rain showers',
+    82: 'Heavy showers',
+    95: 'Thunderstorm',
+  };
+
+  return labels[code] || 'Clear';
 }
