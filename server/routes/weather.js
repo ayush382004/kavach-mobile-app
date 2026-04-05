@@ -105,11 +105,6 @@ router.get('/heatwave', protect, async (req, res) => {
         user: req.user,
       });
       return res.json(buildHeatwaveResponse(fallback, req.user));
-    } catch (fallbackErr) {
-      console.error('[Weather] Open-Meteo fallback failed:', describeError(fallbackErr));
-      if (process.env.NODE_ENV === 'development') {
-        return res.json(getMockWeatherData(req.user));
-      }
       res.status(502).json({ error: 'Weather API unavailable. Try again.' });
     }
   }
@@ -409,29 +404,6 @@ function describeError(error) {
     return `${error.code}: ${error.message || 'Request error'}`;
   }
   return error.stack || error.message || JSON.stringify(error);
-}
-
-function getMockWeatherData(user = {}) {
-  const temp = 46 + Math.random() * 4; // 46-50°C for demo
-  const tier = getPayoutTier(temp);
-  const pricing = resolvePricing(user?.state || 'Rajasthan', user?.city || 'Jaipur');
-  return {
-    temperature: parseFloat(temp.toFixed(1)),
-    feelsLike: parseFloat((temp + 3).toFixed(1)),
-    humidity: 18,
-    uvIndex: 11,
-    windSpeed: 12,
-    condition: 'Sunny',
-    city: 'Jaipur',
-    region: 'Rajasthan',
-    country: 'India',
-    isHeatwave: true,
-    heatwaveThreshold: 45,
-    pricing,
-    payoutTier: tier,
-    payoutAmount: getPayoutAmountForMax(pricing.maxPayout, temp),
-    source: 'Mock (dev mode)',
-  };
 }
 
 module.exports = router;
