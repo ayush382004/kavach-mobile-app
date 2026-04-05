@@ -11,70 +11,120 @@ const HEATWAVE_THRESHOLD = 45;
 
 export default function Home() {
   const { user } = useAuth();
+  const fallbackCity = user?.city || 'Jaipur';
+  const fallbackState = user?.state || 'Rajasthan';
   const [live, setLive] = useState({
-    loading: true, refreshing: false,
-    locationLabel: user?.city ? `${user.city}` : 'Checking area',
-    city: user?.city || '', state: user?.state || '',
-    coords: null, weather: null, error: '',
+    loading: true,
+    refreshing: false,
+    locationLabel: formatLocationLabel(fallbackCity, fallbackState) || 'Checking area',
+    city: fallbackCity,
+    state: fallbackState,
+    coords: null,
+    weather: null,
+    error: '',
   });
   const [showSplash, setShowSplash] = useState(true);
+
   const pricing = useMemo(
-    () => resolvePricing(live.state || user?.state, live.city || user?.city),
-    [live.city, live.state, user?.city, user?.state],
+    () => resolvePricing(live.state || fallbackState, live.city || fallbackCity),
+    [fallbackCity, fallbackState, live.city, live.state],
   );
 
   const loadLiveSnapshot = useCallback(async (isRefresh = false) => {
-    setLive(c => ({ ...c, loading: !isRefresh, refreshing: isRefresh, error: '' }));
+    setLive((current) => ({
+      ...current,
+      loading: !isRefresh,
+      refreshing: isRefresh,
+      error: '',
+    }));
+
     let coords = null;
     let place = null;
+    const defaultLocation = {
+      city: user?.city || 'Jaipur',
+      state: user?.state || 'Rajasthan',
+    };
+
     try {
-      coords = await getCurrentCoordinates();
-      place = await reverseGeocodeIndia(coords.latitude, coords.longitude);
-      const { data } = await weatherAPI.getCurrent({
-        lat: coords.latitude,
-        lng: coords.longitude,
-        city: place.city || user?.city || 'Jaipur',
-        state: place.state || user?.state || '',
-      });
+      try {
+        coords = await getCurrentCoordinates();
+      } catch {
+        coords = null;
+      }
+
+      if (coords) {
+        try {
+          place = await reverseGeocodeIndia(coords.latitude, coords.longitude);
+        } catch {
+          place = null;
+        }
+      }
+
+      const requestParams = coords
+        ? {
+            lat: coords.latitude,
+            lng: coords.longitude,
+            city: place?.city || defaultLocation.city,
+            state: place?.state || defaultLocation.state,
+          }
+        : {
+            city: defaultLocation.city,
+            state: defaultLocation.state,
+          };
+
+      const { data } = await weatherAPI.getCurrent(requestParams);
+      const resolvedCity = place?.city || data.city || defaultLocation.city;
+      const resolvedState = place?.state || data.state || defaultLocation.state;
+
       setLive({
-        loading: false, refreshing: false,
-        locationLabel: place.city || 'Current area',
-        city: place.city || data.city || user?.city || '',
-        state: place.state || user?.state || '',
-        coords, weather: data, error: '',
+        loading: false,
+        refreshing: false,
+        locationLabel: formatLocationLabel(resolvedCity, resolvedState) || 'Current area',
+        city: resolvedCity,
+        state: resolvedState,
+        coords,
+        weather: data,
+        error: '',
       });
     } catch (err) {
       try {
         const fallback = await getClientWeatherFallback({
           lat: coords?.latitude,
           lng: coords?.longitude,
-          city: place?.city || user?.city || 'Jaipur',
-          state: place?.state || user?.state || '',
+          city: place?.city || defaultLocation.city,
+          state: place?.state || defaultLocation.state,
         });
 
-        setLive(c => ({
-          ...c,
+        const resolvedCity = place?.city || fallback.city || defaultLocation.city;
+        const resolvedState = place?.state || fallback.state || defaultLocation.state;
+
+        setLive({
           loading: false,
           refreshing: false,
-          locationLabel: place?.city || c.locationLabel,
-          city: place?.city || fallback.city || c.city,
-          state: place?.state || c.state,
+          locationLabel: formatLocationLabel(resolvedCity, resolvedState) || 'Current area',
+          city: resolvedCity,
+          state: resolvedState,
           coords,
           weather: fallback,
           error: '',
-        }));
+        });
       } catch {
-        setLive(c => ({
-          ...c,
+        setLive((current) => ({
+          ...current,
           loading: false,
           refreshing: false,
-          error: err.response?.data?.error || 'Weather unavailable right now',
+          locationLabel:
+            formatLocationLabel(current.city || defaultLocation.city, current.state || defaultLocation.state) ||
+            current.locationLabel,
+          error: err.response?.data?.error || err.message || 'Weather unavailable right now',
         }));
       }
     }
   }, [user?.city, user?.state]);
 
-  useEffect(() => { loadLiveSnapshot().catch(() => {}); }, [loadLiveSnapshot]);
+  useEffect(() => {
+    loadLiveSnapshot().catch(() => {});
+  }, [loadLiveSnapshot]);
 
   if (showSplash && !user) {
     return <Splash onFinish={() => setShowSplash(false)} />;
@@ -82,69 +132,146 @@ export default function Home() {
 
   return (
     <div className="phone-screen" style={{ justifyContent: 'flex-start' }}>
-      
-      {/* Glows */}
-      <div style={{ position: 'absolute', top: -100, right: -100, width: 300, height: 300, background: 'radial-gradient(circle, rgba(249,115,22,0.15) 0%, transparent 70%)', borderRadius: '50%', pointerEvents: 'none' }} />
-      <div style={{ position: 'absolute', bottom: -50, left: -50, width: 250, height: 250, background: 'radial-gradient(circle, rgba(139,92,246,0.1) 0%, transparent 70%)', borderRadius: '50%', pointerEvents: 'none' }} />
+      <div
+        style={{
+          position: 'absolute',
+          top: -100,
+          right: -100,
+          width: 300,
+          height: 300,
+          background: 'radial-gradient(circle, rgba(249,115,22,0.15) 0%, transparent 70%)',
+          borderRadius: '50%',
+          pointerEvents: 'none',
+        }}
+      />
+      <div
+        style={{
+          position: 'absolute',
+          bottom: -50,
+          left: -50,
+          width: 250,
+          height: 250,
+          background: 'radial-gradient(circle, rgba(139,92,246,0.1) 0%, transparent 70%)',
+          borderRadius: '50%',
+          pointerEvents: 'none',
+        }}
+      />
 
       <div className="page-content">
-      <div style={{ padding: '24px 20px 10px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div>
-          <h1 style={{ fontSize: 24, fontWeight: 800, color: '#fff', fontFamily: "'Sora',sans-serif" }}>Kavach<span style={{ color: '#f97316' }}>ForWork</span></h1>
-          <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginTop: 2 }}>Climate Protection for Gig Workers</div>
+        <div style={{ padding: '24px 20px 10px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div>
+            <h1 style={{ fontSize: 24, fontWeight: 800, color: '#fff', fontFamily: "'Sora',sans-serif" }}>
+              Kavach<span style={{ color: '#f97316' }}>ForWork</span>
+            </h1>
+            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginTop: 2 }}>
+              Climate Protection for Gig Workers
+            </div>
+          </div>
+          <div
+            style={{
+              width: 44,
+              height: 44,
+              borderRadius: '50%',
+              background: 'rgba(249,115,22,0.1)',
+              border: '2px solid rgba(249,115,22,0.3)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              overflow: 'hidden',
+            }}
+          >
+            <img src="/logo.png" alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          </div>
         </div>
-        <div style={{
-            width: 44, height: 44, borderRadius: '50%',
-            background: 'rgba(249,115,22,0.1)', border: '2px solid rgba(249,115,22,0.3)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden'
-        }}>
-           <img src="/logo.png" alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-        </div>
-      </div>
 
-      <div style={{ padding: '20px' }}>
-         <div className="glass fade-up" style={{ padding: '30px 24px', textAlign: 'center', marginBottom: 20 }}>
-            <h2 style={{ fontSize: 32, fontWeight: 900, color: '#fff', fontFamily: "'Sora',sans-serif", lineHeight: 1.2 }}>See the heat.<br /><span style={{ color: '#f97316' }}>Stay covered.</span></h2>
-            <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', marginTop: 12, marginBottom: 24 }}>Hardware-backed climate protection for delivery riders and field workers.</p>
+        <div style={{ padding: '20px' }}>
+          <div className="glass fade-up" style={{ padding: '30px 24px', textAlign: 'center', marginBottom: 20 }}>
+            <h2 style={{ fontSize: 32, fontWeight: 900, color: '#fff', fontFamily: "'Sora',sans-serif", lineHeight: 1.2 }}>
+              See the heat.
+              <br />
+              <span style={{ color: '#f97316' }}>Stay covered.</span>
+            </h2>
+            <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', marginTop: 12, marginBottom: 24 }}>
+              Hardware-backed climate protection for delivery riders and field workers.
+            </p>
             {user ? (
-              <Link to="/dashboard" className="btn-primary" style={{ display: 'block', textDecoration: 'none' }}>Go to Dashboard →</Link>
+              <Link to="/dashboard" className="btn-primary" style={{ display: 'block', textDecoration: 'none' }}>
+                Open Dashboard
+              </Link>
             ) : (
               <div style={{ display: 'flex', gap: 12 }}>
-                <Link to="/register" className="btn-primary" style={{ flex: 1, textDecoration: 'none' }}>Join Kavach</Link>
-                <Link to="/login" className="btn-secondary" style={{ flex: 1, textDecoration: 'none' }}>Sign In</Link>
+                <Link to="/register" className="btn-primary" style={{ flex: 1, textDecoration: 'none' }}>
+                  Join Kavach
+                </Link>
+                <Link to="/login" className="btn-secondary" style={{ flex: 1, textDecoration: 'none' }}>
+                  Sign In
+                </Link>
               </div>
             )}
-         </div>
+          </div>
 
-         <div className="glass fade-up" style={{ padding: 20, marginBottom: 20, animationDelay: '0.1s' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+          <div className="glass fade-up" style={{ padding: 20, marginBottom: 20, animationDelay: '0.1s' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, marginBottom: 16 }}>
               <div style={{ fontSize: 14, fontWeight: 800, color: '#fff' }}>Live Area Check</div>
-              <span style={{ fontSize: 10, background: 'rgba(249,115,22,0.15)', color: '#f97316', padding: '4px 8px', borderRadius: 10, fontWeight: 700 }}>{live.refreshing ? 'Scanning…' : 'Online'}</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span
+                  style={{
+                    fontSize: 10,
+                    background: 'rgba(249,115,22,0.15)',
+                    color: '#f97316',
+                    padding: '4px 8px',
+                    borderRadius: 10,
+                    fontWeight: 700,
+                  }}
+                >
+                  {live.refreshing ? 'Scanning...' : 'Online'}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => loadLiveSnapshot(true).catch(() => {})}
+                  disabled={live.refreshing}
+                  style={{
+                    border: '1px solid rgba(255,255,255,0.12)',
+                    background: 'rgba(255,255,255,0.04)',
+                    color: '#fff',
+                    borderRadius: 10,
+                    padding: '6px 10px',
+                    fontSize: 10,
+                    fontWeight: 700,
+                    cursor: live.refreshing ? 'default' : 'pointer',
+                    opacity: live.refreshing ? 0.6 : 1,
+                  }}
+                >
+                  Retry
+                </button>
+              </div>
             </div>
+
             {live.loading ? (
               <div className="heat-shimmer" style={{ height: 60, borderRadius: 12 }} />
             ) : (
               <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-                <div style={{ flex: 1 }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 24, fontWeight: 800, color: '#fff' }}>{live.locationLabel}</div>
-                  <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginTop: 2 }}>{live.weather?.condition || 'Waiting for signal'}</div>
+                  <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginTop: 2 }}>
+                    {live.weather?.condition || 'Waiting for signal'}
+                  </div>
                 </div>
-                <div style={{ fontSize: 36, fontWeight: 900, color: '#f97316' }}>
-                  {live.weather?.temperature ? `${live.weather.temperature}°` : '--°'}
+                <div style={{ fontSize: 36, fontWeight: 900, color: '#f97316', whiteSpace: 'nowrap' }}>
+                  {Number.isFinite(Number(live.weather?.temperature)) ? `${live.weather.temperature}°` : '--°'}
                 </div>
               </div>
             )}
-            {live.error && (
-              <div style={{ marginTop: 12, fontSize: 11, color: '#fda4af' }}>{live.error}</div>
-            )}
-         </div>
 
-         <div className="glass fade-up" style={{ padding: 18, marginBottom: 20, animationDelay: '0.15s' }}>
+            {live.error && <div style={{ marginTop: 12, fontSize: 11, color: '#fda4af' }}>{live.error}</div>}
+          </div>
+
+          <div className="glass fade-up" style={{ padding: 18, marginBottom: 20, animationDelay: '0.15s' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
               <div style={{ flex: 1 }}>
                 <div style={{ fontSize: 11, letterSpacing: '0.08em', color: 'rgba(255,255,255,0.4)' }}>MAX PAYOUT</div>
                 <div style={{ fontSize: 24, fontWeight: 900, color: '#fff', marginTop: 6 }}>
-                  ₹{live.weather?.payoutAmount || pricing.maxPayout}
+                  Rs {live.weather?.payoutAmount || pricing.maxPayout}
                 </div>
                 <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', marginTop: 4 }}>
                   {live.weather?.payoutTier ? `${live.weather.payoutTier} heat tier` : pricing.category}
@@ -153,32 +280,39 @@ export default function Home() {
               <div style={{ flex: 1, textAlign: 'right' }}>
                 <div style={{ fontSize: 11, letterSpacing: '0.08em', color: 'rgba(255,255,255,0.4)' }}>WEEKLY PREMIUM</div>
                 <div style={{ fontSize: 24, fontWeight: 900, color: '#f97316', marginTop: 6 }}>
-                  ₹{live.weather?.pricing?.weeklyPremium || pricing.weeklyPremium}
+                  Rs {live.weather?.pricing?.weeklyPremium || pricing.weeklyPremium}
                 </div>
-                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', marginTop: 4 }}>
-                  {pricing.label}
-                </div>
+                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', marginTop: 4 }}>{pricing.label}</div>
               </div>
             </div>
-         </div>
+          </div>
 
-         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 20 }}>
-            {[{ icon: '🌡️', title: 'Live Heat Intel' }, { icon: '🛡️', title: 'AI AI Sentry' }, { icon: '💸', title: 'Wallet Payouts' }, { icon: '🛵', title: 'For Riders' }].map((f, i) => (
-              <div key={i} className="glass fade-up" style={{ padding: 16, textAlign: 'center', animationDelay: `${0.2 + i*0.1}s` }}>
-                <div style={{ fontSize: 24, marginBottom: 8 }}>{f.icon}</div>
-                <div style={{ fontSize: 12, fontWeight: 700, color: '#fff' }}>{f.title}</div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 20 }}>
+            {[
+              { icon: '🌡️', title: 'Live Heat Intel' },
+              { icon: '🛡️', title: 'AI Sentry' },
+              { icon: '💸', title: 'Wallet Payouts' },
+              { icon: '🛵', title: 'For Riders' },
+            ].map((feature, index) => (
+              <div
+                key={index}
+                className="glass fade-up"
+                style={{ padding: 16, textAlign: 'center', animationDelay: `${0.2 + index * 0.1}s` }}
+              >
+                <div style={{ fontSize: 24, marginBottom: 8 }}>{feature.icon}</div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: '#fff' }}>{feature.title}</div>
               </div>
             ))}
-         </div>
-      </div>
-      
-      {!user && (
-         <div style={{ padding: 20, textAlign: 'center', fontSize: 12, color: 'rgba(255,255,255,0.3)', paddingBottom: 100 }}>
+          </div>
+        </div>
+
+        {!user && (
+          <div style={{ padding: 20, textAlign: 'center', fontSize: 12, color: 'rgba(255,255,255,0.3)', paddingBottom: 100 }}>
             © 2024 KavachForWork · <Link to="/admin/login" style={{ color: 'inherit' }}>Admin Portal</Link>
-         </div>
-      )}
+          </div>
+        )}
       </div>
-      
+
       {user && <BottomNav />}
     </div>
   );
@@ -190,7 +324,9 @@ async function getClientWeatherFallback({ lat, lng, city, state }) {
   let resolvedCity = city || 'Jaipur';
 
   if (!targetLat || !targetLng) {
-    const geocodeUrl = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city || 'Jaipur')}&count=1&language=en&format=json`;
+    const geocodeUrl =
+      `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city || 'Jaipur')}` +
+      '&count=1&language=en&format=json';
     const geoResponse = await fetch(geocodeUrl);
     if (!geoResponse.ok) throw new Error('Weather lookup failed');
     const geoData = await geoResponse.json();
@@ -218,6 +354,7 @@ async function getClientWeatherFallback({ lat, lng, city, state }) {
 
   return {
     city: resolvedCity,
+    state,
     temperature,
     feelsLike: Number(current.apparent_temperature),
     humidity: Number(current.relative_humidity_2m),
@@ -254,4 +391,8 @@ function getWeatherCodeLabel(code) {
   };
 
   return labels[code] || 'Clear';
+}
+
+function formatLocationLabel(city, state) {
+  return [city, state].filter(Boolean).join(', ');
 }
