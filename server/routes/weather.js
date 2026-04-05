@@ -19,6 +19,7 @@ const { getPayoutTier, getPayoutAmountForMax, HEATWAVE_THRESHOLD } = require('..
 const { resolvePricing } = require('../utils/pricing');
 const OPEN_METEO_FORECAST_URL = 'https://api.open-meteo.com/v1/forecast';
 const OPEN_METEO_GEOCODING_URL = 'https://geocoding-api.open-meteo.com/v1/search';
+const WEATHERSTACK_CURRENT_URL = 'https://api.weatherstack.com/current';
 const IPV4_HTTPS_AGENT = new https.Agent({ family: 4 });
 
 function canUseWeatherStack() {
@@ -49,7 +50,7 @@ router.get('/heatwave', protect, async (req, res) => {
     // Build query: prefer coordinates, fallback to city name
     const query = (lat && lng) ? `${lat},${lng}` : (city || 'Jaipur');
 
-    const response = await axios.get('http://api.weatherstack.com/current', {
+    const response = await axios.get(WEATHERSTACK_CURRENT_URL, {
       params: {
         access_key: WEATHERSTACK_KEY,
         query,
@@ -139,7 +140,23 @@ router.get('/current', async (req, res) => {
     });
   } catch (err) {
     console.error('[Weather] Current weather primary failed:', describeError(err));
-    res.status(502).json({ error: 'Weather service unavailable.' });
+    try {
+      if (!canUseWeatherStack()) {
+        throw new Error('WeatherStack unavailable');
+      }
+
+      const fallback = await getWeatherStackWeather({
+        lat: req.query.lat,
+        lng: req.query.lng,
+        city: req.query.city || 'Jaipur',
+        state: req.query.state,
+      });
+
+      return res.json(fallback);
+    } catch (fallbackErr) {
+      console.error('[Weather] Current weather fallback failed:', describeError(fallbackErr));
+      res.status(502).json({ error: 'Weather service unavailable.' });
+    }
   }
 });
 
@@ -220,6 +237,41 @@ async function getOpenMeteoWeather({ lat, lng, city, user }) {
     precipitation: current.precipitation || 0,
     condition: getWeatherCodeLabel(current.weather_code),
     timestamp: current.time,
+  };
+}
+
+async function getWeatherStackWeather({ lat, lng, city, state }) {
+  const query = lat && lng ? `${lat},${lng}` : city || 'Jaipur';
+  const response = await axios.get(WEATHERSTACK_CURRENT_URL, {
+    params: {
+      access_key: WEATHERSTACK_KEY,
+      query,
+      units: 'm',
+    },
+    timeout: 8000,
+  });
+
+  const data = response.data;
+  if (data.error) {
+    throw new Error(data.error.info || data.error.type || 'WeatherStack error');
+  }
+
+  const pricing = resolvePricing(state, data.location?.name || city || 'Jaipur');
+  const temperature = data.current.temperature;
+
+  return {
+    city: data.location?.name || city || 'Jaipur',
+    region: data.location?.region || state || '',
+    temperature,
+    feelsLike: data.current.feelslike,
+    humidity: data.current.humidity,
+    condition: data.current.weather_descriptions?.[0] || 'Clear',
+    weatherIcon: data.current.weather_icons?.[0] || null,
+    isHeatwave: temperature >= HEATWAVE_THRESHOLD,
+    pricing,
+    payoutTier: getPayoutTier(temperature),
+    payoutAmount: getPayoutAmountForMax(pricing.maxPayout, temperature),
+    source: 'WeatherStack',
   };
 }
 
