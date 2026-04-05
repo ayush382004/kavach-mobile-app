@@ -41,11 +41,11 @@ const io = new Server(server, {
     origin: (origin, callback) => {
       if (!origin) return callback(null, true);
       const allowed = [
-        process.env.CLIENT_URL || 'https://kavachforwork-web.onrender.com',
+        /^https:\/\/[a-z0-9-]+\.onrender\.com$/,
         'capacitor://localhost', 'https://localhost', 'http://localhost',
         'http://localhost:5173', 'http://localhost:5174',
       ];
-      if (allowed.includes(origin) || /^http:\/\/(192\.168|10\.|172\.)/.test(origin)) {
+      if (allowed.some(o => typeof o === 'string' ? o === origin : o.test(origin))) {
         return callback(null, true);
       }
       return callback(new Error('Not allowed by CORS'));
@@ -73,9 +73,9 @@ io.on('connection', (socket) => {
 
 // ─── Middleware ───────────────────────────────────────────────────────────────
 const ALLOWED_ORIGINS = [
-  // Live Render frontend
-  process.env.CLIENT_URL || 'https://kavachforwork-web.onrender.com',
-  // Capacitor Android app origins (both http and https schemes)
+  // Live Render frontend (any subdomain on onrender.com)
+  /^https:\/\/[a-z0-9-]+\.onrender\.com$/,
+  // Capacitor Android app origins
   'capacitor://localhost',
   'https://localhost',
   'http://localhost',

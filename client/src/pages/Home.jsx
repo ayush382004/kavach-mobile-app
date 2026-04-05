@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { weatherAPI } from '../utils/api.js';
+
 import { getCurrentCoordinates, reverseGeocodeIndia } from '../utils/location.js';
 import { useAuth } from '../hooks/useAuth.jsx';
 import BottomNav from '../components/BottomNav.jsx';
@@ -46,35 +46,21 @@ export default function Home() {
     };
 
     try {
-      try {
-        coords = await getCurrentCoordinates();
-      } catch {
-        coords = null;
-      }
-
+      try { coords = await getCurrentCoordinates(); } catch { coords = null; }
       if (coords) {
-        try {
-          place = await reverseGeocodeIndia(coords.latitude, coords.longitude);
-        } catch {
-          place = null;
-        }
+        try { place = await reverseGeocodeIndia(coords.latitude, coords.longitude); } catch { place = null; }
       }
 
-      const requestParams = coords
-        ? {
-            lat: coords.latitude,
-            lng: coords.longitude,
-            city: place?.city || defaultLocation.city,
-            state: place?.state || defaultLocation.state,
-          }
-        : {
-            city: defaultLocation.city,
-            state: defaultLocation.state,
-          };
+      // Always call Open-Meteo directly from browser — free, no server needed
+      const weatherData = await getClientWeatherFallback({
+        lat: coords?.latitude,
+        lng: coords?.longitude,
+        city: place?.city || defaultLocation.city,
+        state: place?.state || defaultLocation.state,
+      });
 
-      const { data } = await weatherAPI.getCurrent(requestParams);
-      const resolvedCity = place?.city || data.city || defaultLocation.city;
-      const resolvedState = place?.state || data.state || defaultLocation.state;
+      const resolvedCity = place?.city || weatherData.city || defaultLocation.city;
+      const resolvedState = place?.state || weatherData.state || defaultLocation.state;
 
       setLive({
         loading: false,
@@ -83,42 +69,19 @@ export default function Home() {
         city: resolvedCity,
         state: resolvedState,
         coords,
-        weather: data,
+        weather: weatherData,
         error: '',
       });
     } catch (err) {
-      try {
-        const fallback = await getClientWeatherFallback({
-          lat: coords?.latitude,
-          lng: coords?.longitude,
-          city: place?.city || defaultLocation.city,
-          state: place?.state || defaultLocation.state,
-        });
-
-        const resolvedCity = place?.city || fallback.city || defaultLocation.city;
-        const resolvedState = place?.state || fallback.state || defaultLocation.state;
-
-        setLive({
-          loading: false,
-          refreshing: false,
-          locationLabel: formatLocationLabel(resolvedCity, resolvedState) || 'Current area',
-          city: resolvedCity,
-          state: resolvedState,
-          coords,
-          weather: fallback,
-          error: '',
-        });
-      } catch {
-        setLive((current) => ({
-          ...current,
-          loading: false,
-          refreshing: false,
-          locationLabel:
-            formatLocationLabel(current.city || defaultLocation.city, current.state || defaultLocation.state) ||
-            current.locationLabel,
-          error: err.response?.data?.error || err.message || 'Weather unavailable right now',
-        }));
-      }
+      setLive((current) => ({
+        ...current,
+        loading: false,
+        refreshing: false,
+        locationLabel:
+          formatLocationLabel(current.city || defaultLocation.city, current.state || defaultLocation.state) ||
+          current.locationLabel,
+        error: 'Weather unavailable. Check your connection.',
+      }));
     }
   }, [user?.city, user?.state]);
 
