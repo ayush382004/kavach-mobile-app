@@ -10,7 +10,6 @@ const HISTORY_LEN = 80;
 export default function TelemetryWaveform({ color = '#f97316', height = 56 }) {
   const canvasRef = useRef(null);
   const historyRef = useRef(Array(HISTORY_LEN).fill(0));
-  const rafRef = useRef(null);
   const lastAccRef = useRef({ x: 0, y: 0, z: 0 });
   const motionGranted = useRef(false);
 
@@ -56,21 +55,15 @@ export default function TelemetryWaveform({ color = '#f97316', height = 56 }) {
   // Idle animation when no motion data
   const idlePhase = useRef(0);
   useEffect(() => {
-    let lastIdle = 0;
-    const injectIdle = (ts) => {
-      if (ts - lastIdle > 100) {
-        lastIdle = ts;
-        const hasMotion = historyRef.current.some(v => v > 0.02);
-        if (!hasMotion) {
-          idlePhase.current += 0.06;
-          const val = (Math.sin(idlePhase.current) * 0.5 + 0.5) * 0.08;
-          pushSample(val);
-        }
+    const idleTimer = window.setInterval(() => {
+      const hasMotion = historyRef.current.some(v => v > 0.02);
+      if (!hasMotion) {
+        idlePhase.current += 0.06;
+        const val = (Math.sin(idlePhase.current) * 0.5 + 0.5) * 0.08;
+        pushSample(val);
       }
-      rafRef.current = requestAnimationFrame(injectIdle);
-    };
-    rafRef.current = requestAnimationFrame(injectIdle);
-    return () => cancelAnimationFrame(rafRef.current);
+    }, 120);
+    return () => window.clearInterval(idleTimer);
   }, [pushSample]);
 
   // Draw waveform

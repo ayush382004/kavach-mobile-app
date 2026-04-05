@@ -7,11 +7,12 @@
 @layer base {
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   html {
-    scroll-behavior: smooth;
+    scroll-behavior: auto;
     overscroll-behavior: none;
     width: 100%;
     max-width: 100%;
     overflow-x: hidden;
+    overflow-y: auto;
   }
   body {
     font-family: 'Plus Jakarta Sans', sans-serif;
@@ -24,10 +25,14 @@
     max-width: 100%;
     margin: 0;
     overflow-x: hidden;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-y;
   }
   #root {
     width: 100%;
     max-width: 100%;
+    min-height: 100dvh;
     overflow-x: hidden;
   }
 }
@@ -136,9 +141,28 @@
   position: relative;
   background: linear-gradient(160deg, #0d0d14 0%, #131320 60%, #1a0d24 100%);
   overflow-x: hidden;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
+  overflow-y: visible;
   touch-action: pan-y;
+}
+
+@media (max-width: 768px) {
+  :root {
+    --glass-blur: 14px;
+  }
+
+  .glass {
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+  }
+
+  .glass-strong {
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+  }
+
+  .fab-ping::after {
+    animation-duration: 2.8s;
+  }
 }
 
 /* ─── RISK RING ──────────────────────────────────────────────────────── */

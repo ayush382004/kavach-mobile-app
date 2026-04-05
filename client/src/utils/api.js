@@ -59,7 +59,10 @@ export const claimsAPI = {
 // Weather
 export const weatherAPI = {
   getHeatwave: (params) => api.get('/weather/heatwave', { params }),
-  getCurrent: (city) => api.get('/weather/current', { params: { city } }),
+  getCurrent: (paramsOrCity) =>
+    api.get('/weather/current', {
+      params: typeof paramsOrCity === 'string' ? { city: paramsOrCity } : paramsOrCity,
+    }),
   getAQI: (params) => api.get('/weather/aqi', { params }),
 };
 

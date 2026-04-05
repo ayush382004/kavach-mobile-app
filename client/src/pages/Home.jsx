@@ -5,6 +5,7 @@ import { getCurrentCoordinates, reverseGeocodeIndia } from '../utils/location.js
 import { useAuth } from '../hooks/useAuth.jsx';
 import BottomNav from '../components/BottomNav.jsx';
 import Splash from '../components/Splash.jsx';
+import { resolvePricing } from '../utils/pricing.js';
 
 export default function Home() {
   const { user } = useAuth();
@@ -15,13 +16,22 @@ export default function Home() {
     coords: null, weather: null, error: '',
   });
   const [showSplash, setShowSplash] = useState(true);
+  const pricing = useMemo(
+    () => resolvePricing(live.state || user?.state, live.city || user?.city),
+    [live.city, live.state, user?.city, user?.state],
+  );
 
   const loadLiveSnapshot = useCallback(async (isRefresh = false) => {
     setLive(c => ({ ...c, loading: !isRefresh, refreshing: isRefresh, error: '' }));
     try {
       const coords = await getCurrentCoordinates();
       const place = await reverseGeocodeIndia(coords.latitude, coords.longitude);
-      const { data } = await weatherAPI.getCurrent(place.city || user?.city || 'Jaipur');
+      const { data } = await weatherAPI.getCurrent({
+        lat: coords.latitude,
+        lng: coords.longitude,
+        city: place.city || user?.city || 'Jaipur',
+        state: place.state || user?.state || '',
+      });
       setLive({
         loading: false, refreshing: false,
         locationLabel: place.city || 'Current area',
@@ -29,7 +39,14 @@ export default function Home() {
         state: place.state || user?.state || '',
         coords, weather: data, error: '',
       });
-    } catch (err) { }
+    } catch (err) {
+      setLive(c => ({
+        ...c,
+        loading: false,
+        refreshing: false,
+        error: err.response?.data?.error || 'Weather unavailable right now',
+      }));
+    }
   }, [user?.city, user?.state]);
 
   useEffect(() => { loadLiveSnapshot().catch(() => {}); }, [loadLiveSnapshot]);
@@ -91,6 +108,32 @@ export default function Home() {
                 </div>
               </div>
             )}
+            {live.error && (
+              <div style={{ marginTop: 12, fontSize: 11, color: '#fda4af' }}>{live.error}</div>
+            )}
+         </div>
+
+         <div className="glass fade-up" style={{ padding: 18, marginBottom: 20, animationDelay: '0.15s' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 11, letterSpacing: '0.08em', color: 'rgba(255,255,255,0.4)' }}>MAX PAYOUT</div>
+                <div style={{ fontSize: 24, fontWeight: 900, color: '#fff', marginTop: 6 }}>
+                  ₹{live.weather?.payoutAmount || pricing.maxPayout}
+                </div>
+                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', marginTop: 4 }}>
+                  {live.weather?.payoutTier ? `${live.weather.payoutTier} heat tier` : pricing.category}
+                </div>
+              </div>
+              <div style={{ flex: 1, textAlign: 'right' }}>
+                <div style={{ fontSize: 11, letterSpacing: '0.08em', color: 'rgba(255,255,255,0.4)' }}>WEEKLY PREMIUM</div>
+                <div style={{ fontSize: 24, fontWeight: 900, color: '#f97316', marginTop: 6 }}>
+                  ₹{live.weather?.pricing?.weeklyPremium || pricing.weeklyPremium}
+                </div>
+                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', marginTop: 4 }}>
+                  {pricing.label}
+                </div>
+              </div>
+            </div>
          </div>
 
          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 20 }}>
