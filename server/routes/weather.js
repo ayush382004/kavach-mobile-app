@@ -41,74 +41,42 @@ router.get('/heatwave', protect, async (req, res) => {
   }
 
   try {
-    if (!canUseWeatherStack()) {
-      throw new Error('WeatherStack unavailable');
-    }
-
+    if (!canUseWeatherStack()) throw new Error('WeatherStack unavailable');
     const { lat, lng, city } = req.query;
-
-    // Build query: prefer coordinates, fallback to city name
     const query = (lat && lng) ? `${lat},${lng}` : (city || 'Jaipur');
-
     const response = await axios.get(WEATHERSTACK_CURRENT_URL, {
-      params: {
-        access_key: WEATHERSTACK_KEY,
-        query,
-        units: 'm', // metric
-      },
+      params: { access_key: WEATHERSTACK_KEY, query, units: 'm' },
       timeout: 8000,
     });
-
     const data = response.data;
-
-    if (data.error) {
-      throw new Error(data.error.info || data.error.type || 'WeatherStack error');
-    }
-
+    if (data.error) throw new Error(data.error.info || data.error.type || 'WeatherStack error');
     const temp = data.current.temperature;
-    const feelsLike = data.current.feelslike;
-    const humidity = data.current.humidity;
-    const uvIndex = data.current.uv_index;
-    const precipitation = data.current.precip || 0;
-
-    const isHeatwave = temp >= HEATWAVE_THRESHOLD;
-    const payoutTier = getPayoutTier(temp);
     const pricing = resolvePricing(req.user?.state, data.location?.name || city || req.user?.city);
-
-    res.json({
+    return res.json({
       temperature: temp,
-      feelsLike,
-      humidity,
-      uvIndex,
+      feelsLike: data.current.feelslike,
+      humidity: data.current.humidity,
+      uvIndex: data.current.uv_index,
       windSpeed: data.current.wind_speed,
-      precipitation,
+      precipitation: data.current.precip || 0,
       condition: data.current.weather_descriptions?.[0] || 'Clear',
       weatherIcon: data.current.weather_icons?.[0],
-      city: data.location?.name,
-      region: data.location?.region,
-      country: data.location?.country,
-      isHeatwave,
+      city: data.location?.name, region: data.location?.region, country: data.location?.country,
+      isHeatwave: temp >= HEATWAVE_THRESHOLD,
       heatwaveThreshold: HEATWAVE_THRESHOLD,
       pricing,
-      payoutTier,
+      payoutTier: getPayoutTier(temp),
       payoutAmount: getPayoutAmountForMax(pricing.maxPayout, temp),
       timestamp: data.location?.localtime,
       source: 'WeatherStack',
     });
   } catch (err) {
-    console.error('[Weather] Heatwave check error:', err.message);
-    try {
-      const fallback = await getOpenMeteoWeather({
-        lat: req.query.lat,
-        lng: req.query.lng,
-        city: req.query.city,
-        user: req.user,
-      });
-      return res.json(buildHeatwaveResponse(fallback, req.user));
-      res.status(502).json({ error: 'Weather API unavailable. Try again.' });
-    }
+    console.error('[Weather] Heatwave check all sources failed:', err.message);
+    res.status(502).json({ error: 'Weather API unavailable. Try again.' });
   }
 });
+
+
 
 // ─── Current Weather ──────────────────────────────────────────────────────────
 router.get('/current', async (req, res) => {
@@ -330,29 +298,15 @@ function buildHeatwaveResponse(fallback, user = {}) {
 }
 
 async function requestJson(baseUrl, params) {
-  try {
-    const response = await axios.get(baseUrl, {
-      params,
-      timeout: 8000,
-      family: 4,
-      httpsAgent: IPV4_HTTPS_AGENT,
-      headers: {
-        Accept: 'application/json',
-        'User-Agent': 'KavachForWork/1.0',
-      },
-    });
-    return response.data;
-  } catch (ipv4Err) {
-    const response = await axios.get(baseUrl, {
-      params,
-      timeout: 8000,
-      headers: {
-        Accept: 'application/json',
-        'User-Agent': 'KavachForWork/1.0',
-      },
-    });
-    return response.data;
-  }
+  const response = await axios.get(baseUrl, {
+    params,
+    timeout: 10000,
+    headers: {
+      Accept: 'application/json',
+      'User-Agent': 'KavachForWork/1.0',
+    },
+  });
+  return response.data;
 }
 
 function getWeatherCodeLabel(code) {

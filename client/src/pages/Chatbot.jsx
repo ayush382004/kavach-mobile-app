@@ -27,9 +27,13 @@ export default function Chatbot() {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ messages: [...messages, userMsg].map(m => ({ role: m.role, content: m.content })) }),
       });
-      if (!response.ok) throw new Error('Chatbot API error');
-      const data = await response.json();
-      setMessages(prev => [...prev, { role: 'assistant', content: data.reply }]);
+      // Read JSON regardless of status — server may return { reply: '...' } even on 503
+      const data = await response.json().catch(() => null);
+      if (data?.reply) {
+        setMessages(prev => [...prev, { role: 'assistant', content: data.reply }]);
+      } else {
+        throw new Error('No reply from server');
+      }
     } catch {
       const reply = getLocalReply(text);
       setMessages(prev => [...prev, { role: 'assistant', content: reply }]);

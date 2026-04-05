@@ -269,18 +269,20 @@ export default function Home() {
           <div className="glass fade-up" style={{ padding: 18, marginBottom: 20, animationDelay: '0.15s' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
               <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 11, letterSpacing: '0.08em', color: 'rgba(255,255,255,0.4)' }}>MAX PAYOUT</div>
-                <div style={{ fontSize: 24, fontWeight: 900, color: '#fff', marginTop: 6 }}>
-                  Rs {live.weather?.payoutAmount || pricing.maxPayout}
+                <div style={{ fontSize: 11, letterSpacing: '0.08em', color: 'rgba(255,255,255,0.4)' }}>
+                  {live.weather && Number.isFinite(live.weather.temperature) && live.weather.temperature >= 45 ? 'HEATWAVE PAYOUT' : 'MAX POSSIBLE PAYOUT'}
+                </div>
+                <div style={{ fontSize: 24, fontWeight: 900, color: live.weather?.payoutAmount > 0 ? '#4ade80' : '#fff', marginTop: 6 }}>
+                  {live.loading ? '...' : `₹${live.weather?.payoutAmount ?? pricing.maxPayout}`}
                 </div>
                 <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', marginTop: 4 }}>
-                  {live.weather?.payoutTier ? `${live.weather.payoutTier} heat tier` : pricing.category}
+                  {live.weather?.temperature >= 45 ? `🔥 ${live.weather.temperature}°C — Heatwave active!` : live.weather?.temperature ? `${live.weather.temperature}°C — No heatwave yet` : pricing.category}
                 </div>
               </div>
               <div style={{ flex: 1, textAlign: 'right' }}>
                 <div style={{ fontSize: 11, letterSpacing: '0.08em', color: 'rgba(255,255,255,0.4)' }}>WEEKLY PREMIUM</div>
                 <div style={{ fontSize: 24, fontWeight: 900, color: '#f97316', marginTop: 6 }}>
-                  Rs {live.weather?.pricing?.weeklyPremium || pricing.weeklyPremium}
+                  ₹{live.weather?.pricing?.weeklyPremium ?? pricing.weeklyPremium}
                 </div>
                 <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', marginTop: 4 }}>{pricing.label}</div>
               </div>
