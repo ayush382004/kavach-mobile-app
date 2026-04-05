@@ -56,12 +56,13 @@ export default function Home() {
   }
 
   return (
-    <div className="phone-screen" style={{ paddingBottom: 80, justifyContent: 'flex-start' }}>
+    <div className="phone-screen" style={{ justifyContent: 'flex-start' }}>
       
       {/* Glows */}
       <div style={{ position: 'absolute', top: -100, right: -100, width: 300, height: 300, background: 'radial-gradient(circle, rgba(249,115,22,0.15) 0%, transparent 70%)', borderRadius: '50%', pointerEvents: 'none' }} />
       <div style={{ position: 'absolute', bottom: -50, left: -50, width: 250, height: 250, background: 'radial-gradient(circle, rgba(139,92,246,0.1) 0%, transparent 70%)', borderRadius: '50%', pointerEvents: 'none' }} />
 
+      <div className="page-content">
       <div style={{ padding: '24px 20px 10px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div>
           <h1 style={{ fontSize: 24, fontWeight: 800, color: '#fff', fontFamily: "'Sora',sans-serif" }}>Kavach<span style={{ color: '#f97316' }}>ForWork</span></h1>
@@ -151,6 +152,7 @@ export default function Home() {
             © 2024 KavachForWork · <Link to="/admin/login" style={{ color: 'inherit' }}>Admin Portal</Link>
          </div>
       )}
+      </div>
       
       {user && <BottomNav />}
     </div>

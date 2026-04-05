@@ -134,8 +134,9 @@ export default function Wallet() {
   };
 
   return (
-    <div className="phone-screen" style={{ paddingBottom: 80 }}>
+    <div className="phone-screen">
       <StatusPopup toast={toast} />
+      <div className="page-content">
 
       <div style={{ padding: '24px 20px 10px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div>
@@ -327,6 +328,7 @@ export default function Wallet() {
             </div>
           )}
         </div>
+      </div>
       </div>
       <BottomNav />
     </div>

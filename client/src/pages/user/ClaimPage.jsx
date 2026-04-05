@@ -4,6 +4,7 @@ import { weatherAPI, claimsAPI } from '../../utils/api.js';
 import { useSensors } from '../../hooks/useSensors.js';
 import { useAuth } from '../../hooks/useAuth.jsx';
 import BottomNav from '../../components/BottomNav.jsx';
+import { getCurrentCoordinates, reverseGeocodeIndia } from '../../utils/location.js';
 
 const STEPS = ['Check Weather', 'Sensors', 'AI Verifying', 'Result'];
 
@@ -24,13 +25,16 @@ export default function ClaimPage() {
   const checkWeather = async () => {
     setChecking(true); setError('');
     try {
-      const query = { city: user?.city || 'Jaipur' };
+      const query = { city: user?.city || 'Jaipur', state: user?.state || '' };
       try {
-        const pos = await new Promise((res, rej) => navigator.geolocation?.getCurrentPosition(res, rej, { timeout: 5000 }));
-        const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+        const coordsData = await getCurrentCoordinates();
+        const place = await reverseGeocodeIndia(coordsData.latitude, coordsData.longitude).catch(() => null);
+        const coords = { lat: coordsData.latitude, lng: coordsData.longitude };
         setSensors(prev => ({ ...prev, _coords: coords }));
         query.lat = coords.lat;
         query.lng = coords.lng;
+        if (place?.city) query.city = place.city;
+        if (place?.state) query.state = place.state;
       } catch { }
 
       const { data } = await weatherAPI.getHeatwave(query);
@@ -71,7 +75,8 @@ export default function ClaimPage() {
   const reset = () => { setStep(0); setWeather(null); setSensors(null); setResult(null); setError(''); };
 
   return (
-    <div className="phone-screen" style={{ paddingBottom: 80 }}>
+    <div className="phone-screen">
+      <div className="page-content">
       <div style={{ padding: '24px 20px 10px' }}>
         <h1 style={{ fontSize: 24, fontWeight: 800, color: '#fff', fontFamily: "'Sora',sans-serif" }}>File Claim</h1>
         <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginTop: 2 }}>AI verifies you're outdoors</div>
@@ -102,7 +107,7 @@ export default function ClaimPage() {
               <div className="glass fade-up" style={{ padding: 24, textAlign: 'center' }}>
                 <div style={{ fontSize: 60, marginBottom: 16 }}>🌡️</div>
                 <h2 style={{ fontSize: 18, fontWeight: 800, color: '#fff' }}>Check Heatwave</h2>
-                <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginTop: 8, marginBottom: 20 }}>We'll use WeatherStack API to check the temperature at your location.</p>
+                <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginTop: 8, marginBottom: 20 }}>We'll verify temperature at your live location before sending the claim.</p>
                 {user?.city && <div style={{ display: 'inline-block', background: 'rgba(255,255,255,0.05)', borderRadius: 20, padding: '6px 12px', fontSize: 12, color: 'rgba(255,255,255,0.6)', marginBottom: 24 }}>📍 {user.city}, {user.state}</div>}
                 <button onClick={checkWeather} disabled={checking} className="btn-primary" style={{ width: '100%', opacity: checking ? 0.6 : 1 }}>
                   {checking ? 'Checking…' : 'Check Weather'}
@@ -199,6 +204,7 @@ export default function ClaimPage() {
             <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
           </>
         )}
+      </div>
       </div>
       <BottomNav />
     </div>

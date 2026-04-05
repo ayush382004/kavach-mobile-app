@@ -86,8 +86,9 @@ export default function Dashboard() {
   const riskColor = isHeatwave ? '#ef4444' : temp >= 40 ? '#f59e0b' : '#22c55e';
 
   return (
-    <div className="phone-screen" style={{ paddingBottom: 80 }}>
+    <div className="phone-screen">
       <StatusPopup toast={toast} />
+      <div className="page-content">
 
       {/* ── Status Bar ── */}
       <div style={{
@@ -270,6 +271,7 @@ export default function Dashboard() {
         </div>
 
       </div>{/* end scroll */}
+      </div>
 
       {/* ── FAB ── */}
       <div style={{ position: 'fixed', bottom: 90, right: 20, zIndex: 110, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 10 }}>
