@@ -2,7 +2,6 @@ services:
   - type: web
     name: kavachforwork-web
     runtime: static
-    plan: free
     rootDir: client
     buildCommand: npm install && npm run build
     staticPublishPath: dist
