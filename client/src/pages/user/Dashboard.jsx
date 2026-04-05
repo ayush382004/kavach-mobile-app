@@ -5,7 +5,7 @@
 import { useCallback, useEffect, useState, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth.jsx';
-import { userAPI, walletAPI, weatherAPI } from '../../utils/api.js';
+import { userAPI, walletAPI } from '../../utils/api.js';
 import RiskRing from '../../components/RiskRing.jsx';
 import TelemetryWaveform from '../../components/TelemetryWaveform.jsx';
 import SwipeToActivate from '../../components/SwipeToActivate.jsx';
@@ -49,10 +49,29 @@ export default function Dashboard() {
   const loadWeather = useCallback(async () => {
     try {
       const city = user?.city || 'Jaipur';
-      const { data } = await weatherAPI.getCurrent(city);
-      setWeather(data);
+      const state = user?.state || 'Rajasthan';
+      // Call Open-Meteo directly from browser — free, no API key, no server needed
+      const geoRes = await fetch(
+        `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1&language=en&format=json`
+      );
+      const geoData = await geoRes.json();
+      const loc = geoData?.results?.[0];
+      if (!loc) throw new Error('Could not geocode city');
+      const wxRes = await fetch(
+        `https://api.open-meteo.com/v1/forecast?latitude=${loc.latitude}&longitude=${loc.longitude}&current=temperature_2m,apparent_temperature,relative_humidity_2m,weather_code&timezone=auto&forecast_days=1`
+      );
+      const wxData = await wxRes.json();
+      const temp = wxData?.current?.temperature_2m;
+      const weatherCodes = { 0:'Clear sky',1:'Mainly clear',2:'Partly cloudy',3:'Overcast',45:'Foggy',51:'Light drizzle',61:'Light rain',80:'Rain showers',95:'Thunderstorm' };
+      const condition = weatherCodes[wxData?.current?.weather_code] || 'Clear sky';
+      const HEATWAVE = 45;
+      setWeather({
+        city, temperature: temp, feelsLike: wxData?.current?.apparent_temperature,
+        humidity: wxData?.current?.relative_humidity_2m, condition,
+        isHeatwave: temp >= HEATWAVE,
+      });
     } catch {}
-  }, [user?.city]);
+  }, [user?.city, user?.state]);
 
   useEffect(() => { loadData(); loadWeather(); }, [loadData, loadWeather]);
   // Refresh weather every 3 min
