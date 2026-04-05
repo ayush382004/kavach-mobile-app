@@ -41,8 +41,8 @@ router.post(
   protect,
   claimLimiter,
   [
-    body('location.lat').isFloat({ min: 6, max: 35 }).withMessage('Invalid latitude for India'),
-    body('location.lng').isFloat({ min: 68, max: 98 }).withMessage('Invalid longitude for India'),
+    body('location.lat').isFloat({ min: 6, max: 37.5 }).withMessage('Your GPS location is outside India. Claims can only be filed from within India.'),
+    body('location.lng').isFloat({ min: 68, max: 97.5 }).withMessage('Your GPS location is outside India. Claims can only be filed from within India.'),
     body('weather.ambientTemp').isFloat({ min: 30, max: 60 }).withMessage('Invalid temperature'),
     body('sensorData.deviceTemp').optional().isFloat({ min: 20, max: 65 }),
   ],
@@ -50,7 +50,11 @@ router.post(
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
-        return res.status(400).json({ errors: errors.array() });
+        const firstError = errors.array()[0].msg;
+        return res.status(400).json({
+          error: firstError,
+          code: firstError.includes('outside India') ? 'OUTSIDE_INDIA' : 'VALIDATION_ERROR',
+        });
       }
 
       const user = req.user;
@@ -58,6 +62,21 @@ router.post(
         return res.status(403).json({
           error: 'Your insurance is not active. Please activate weekly coverage first.',
           code: 'INSURANCE_INACTIVE',
+        });
+      }
+
+      // State mismatch check: if claim location state != registered state, block it
+      const claimState = req.body.location?.state || req.body.weather?.state || '';
+      const userState = (user.state || '').toLowerCase().trim();
+      const claimStateLower = claimState.toLowerCase().trim();
+      if (claimStateLower && userState && claimStateLower !== userState) {
+        return res.status(403).json({
+          error: `You are currently in ${claimState} but your insurance is registered for ${user.state}. ` +
+            `State-based coverage does not transfer automatically. ` +
+            `Please deactivate and re-activate your insurance to cover your new state (pricing may differ).`,
+          code: 'STATE_MISMATCH',
+          registeredState: user.state,
+          currentState: claimState,
         });
       }
 

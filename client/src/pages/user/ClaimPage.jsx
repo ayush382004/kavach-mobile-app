@@ -24,6 +24,13 @@ export default function ClaimPage() {
 
   const isInsured = user?.isInsured && user?.premiumUntil && new Date() < new Date(user.premiumUntil);
 
+  // India bounding box
+  const isInsideIndia = (lat, lng) =>
+    lat >= 6.0 && lat <= 37.5 && lng >= 68.0 && lng <= 97.5;
+
+  // State match check (normalize comparison)
+  const normalizeState = (s) => (s || '').toLowerCase().trim();
+
   const checkWeather = async () => {
     setChecking(true); setError('');
     try {
@@ -31,6 +38,16 @@ export default function ClaimPage() {
       let localCoords = null;
       try {
         const coordsData = await getCurrentCoordinates();
+
+        // ── RULE 1: Block if outside India ──
+        if (!isInsideIndia(coordsData.latitude, coordsData.longitude)) {
+          setError(
+            '🌍 Claims can only be filed from within India. Your current GPS location is outside India. Please return to India to file a claim.'
+          );
+          setChecking(false);
+          return;
+        }
+
         const place = await reverseGeocodeIndia(coordsData.latitude, coordsData.longitude).catch(() => null);
         const coords = { lat: coordsData.latitude, lng: coordsData.longitude };
         localCoords = coords;
@@ -39,6 +56,17 @@ export default function ClaimPage() {
         query.lng = coords.lng;
         if (place?.city) query.city = place.city;
         if (place?.state) query.state = place.state;
+
+        // ── RULE 2: Detect state change ──
+        if (place?.state && normalizeState(place.state) !== normalizeState(user?.state)) {
+          setError(
+            `📍 You appear to be in ${place.state}, but your insurance was registered for ${user?.state}. ` +
+            `State-based coverage does not transfer automatically. Please go to Dashboard → Deactivate → Re-activate ` +
+            `to get coverage for your new state (pricing may differ).`
+          );
+          setChecking(false);
+          return;
+        }
       } catch { }
 
       try {
