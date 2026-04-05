@@ -104,6 +104,28 @@ export default function Dashboard() {
   const isHeatwave = weather?.isHeatwave;
   const riskColor = isHeatwave ? '#ef4444' : temp >= 40 ? '#f59e0b' : '#22c55e';
 
+  // Compute payout total from actual transactions
+  const totalPayoutsFromTx = transactions
+    .filter(tx => tx.type === 'claim_payout' || tx.type === 'payout')
+    .reduce((sum, tx) => sum + (tx.amount || 0), 0);
+  const totalPremiumsPaid = transactions
+    .filter(tx => tx.type === 'premium_deduction')
+    .reduce((sum, tx) => sum + Math.abs(tx.amount || 0), 0);
+  const displayPayout = totalPayoutsFromTx || user?.totalPayoutsReceived || 0;
+
+  // Weather emoji helper
+  const getWeatherEmoji = (condition) => {
+    if (!condition) return '🌡️';
+    const c = condition.toLowerCase();
+    if (c.includes('clear') || c.includes('sunny')) return '☀️';
+    if (c.includes('cloudy') || c.includes('overcast')) return '☁️';
+    if (c.includes('rain') || c.includes('drizzle')) return '🌧️';
+    if (c.includes('thunder') || c.includes('storm')) return '⛈️';
+    if (c.includes('fog') || c.includes('mist')) return '🌫️';
+    if (c.includes('snow')) return '❄️';
+    return '🌡️';
+  };
+
   return (
     <div className="phone-screen">
       <StatusPopup toast={toast} />
@@ -137,13 +159,16 @@ export default function Dashboard() {
       <div style={{ display: 'flex', justifyContent: 'center', padding: '8px 20px 20px' }}>
         <RiskRing temperature={temp} isHeatwave={isHeatwave} size={168}>
           <div style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: 36, fontWeight: 900, color: '#fff', fontFamily: "'Sora',sans-serif", lineHeight: 1 }}>
+            <div style={{ fontSize: 28, lineHeight: 1, marginBottom: 2 }}>
+              {weather ? getWeatherEmoji(weather.condition) : '🌡️'}
+            </div>
+            <div style={{ fontSize: 32, fontWeight: 900, color: '#fff', fontFamily: "'Sora',sans-serif", lineHeight: 1 }}>
               {temp != null ? `${temp}°` : '--°'}
             </div>
-            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginTop: 4 }}>
+            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', marginTop: 3 }}>
               {weather?.condition || 'Loading…'}
             </div>
-            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', marginTop: 2 }}>
+            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', marginTop: 1 }}>
               {weather?.city || user?.city || 'Jaipur'}
             </div>
           </div>
@@ -177,10 +202,11 @@ export default function Dashboard() {
             link="/claim"
           />
           <StatCard
-            label="Payouts"
-            value={`₹${user?.totalPayoutsReceived ?? 0}`}
+            label="Payouts Received"
+            value={`₹${displayPayout}`}
             icon="💸"
             color="#38bdf8"
+            subtitle={totalPremiumsPaid > 0 ? `₹${totalPremiumsPaid} paid` : undefined}
           />
         </div>
 
@@ -358,7 +384,7 @@ export default function Dashboard() {
   );
 }
 
-function StatCard({ label, value, icon, color, link, loading }) {
+function StatCard({ label, value, icon, color, link, loading, subtitle }) {
   const inner = (
     <div className="glass" style={{
       padding: '14px', display: 'flex', flexDirection: 'column', gap: 6,
@@ -376,6 +402,7 @@ function StatCard({ label, value, icon, color, link, loading }) {
         </div>
       )}
       <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', fontWeight: 600 }}>{label}</div>
+      {subtitle && <div style={{ fontSize: 10, color: 'rgba(249,115,22,0.7)', fontWeight: 600 }}>{subtitle}</div>}
       <div style={{ height: 2, borderRadius: 2, background: color, opacity: 0.5, marginTop: 2 }} />
     </div>
   );
