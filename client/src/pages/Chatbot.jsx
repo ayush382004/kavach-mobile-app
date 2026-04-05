@@ -41,7 +41,8 @@ export default function Chatbot() {
   ];
 
   return (
-    <div className="phone-screen" style={{ paddingBottom: 80 }}>
+    <div className="phone-screen">
+      <div className="page-content" style={{ display: 'flex', flexDirection: 'column' }}>
       <div style={{ padding: '24px 20px 10px', display: 'flex', alignItems: 'center', gap: 12 }}>
         <div style={{
             width: 44, height: 44, borderRadius: '50%',
@@ -59,7 +60,7 @@ export default function Chatbot() {
         </div>
       </div>
 
-      <div style={{ flex: 1, padding: '0 20px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <div style={{ flex: 1, minHeight: 0, padding: '0 20px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 12 }}>
         {messages.map((msg, i) => (
           <div key={i} className="fade-up" style={{ display: 'flex', flexDirection: 'column', alignItems: msg.role === 'user' ? 'flex-end' : 'flex-start' }}>
             <div style={{
@@ -100,6 +101,7 @@ export default function Chatbot() {
             ↑
           </button>
         </div>
+      </div>
       </div>
       <BottomNav />
     </div>
