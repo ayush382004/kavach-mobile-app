@@ -75,7 +75,7 @@ export default function TelemetryWaveform({ color = '#f97316', height = 56 }) {
 
   // Draw waveform
   useEffect(() => {
-    let drawRaf;
+    let drawTimer;
     const draw = () => {
       const canvas = canvasRef.current;
       if (!canvas) return;
@@ -122,12 +122,11 @@ export default function TelemetryWaveform({ color = '#f97316', height = 56 }) {
       ctx.shadowColor = color;
       ctx.shadowBlur = 6;
       ctx.stroke();
-
-      drawRaf = requestAnimationFrame(draw);
     };
 
-    drawRaf = requestAnimationFrame(draw);
-    return () => cancelAnimationFrame(drawRaf);
+    draw();
+    drawTimer = window.setInterval(draw, 80);
+    return () => window.clearInterval(drawTimer);
   }, [color]);
 
   // Resize canvas

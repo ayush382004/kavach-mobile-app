@@ -28,14 +28,20 @@ function canUseWeatherStack() {
 // ─── Heatwave Check (primary oracle for payout trigger) ───────────────────────
 router.get('/heatwave', protect, async (req, res) => {
   try {
+    const primary = await getOpenMeteoWeather({
+      lat: req.query.lat,
+      lng: req.query.lng,
+      city: req.query.city,
+      user: req.user,
+    });
+    return res.json(buildHeatwaveResponse(primary, req.user));
+  } catch (primaryErr) {
+    console.error('[Weather] Open-Meteo primary failed:', describeError(primaryErr));
+  }
+
+  try {
     if (!canUseWeatherStack()) {
-      const fallback = await getOpenMeteoWeather({
-        lat: req.query.lat,
-        lng: req.query.lng,
-        city: req.query.city,
-        user: req.user,
-      });
-      return res.json(buildHeatwaveResponse(fallback, req.user));
+      throw new Error('WeatherStack unavailable');
     }
 
     const { lat, lng, city } = req.query;
@@ -111,60 +117,19 @@ router.get('/heatwave', protect, async (req, res) => {
 // ─── Current Weather ──────────────────────────────────────────────────────────
 router.get('/current', async (req, res) => {
   try {
-    if (!canUseWeatherStack()) {
-      const fallback = await getOpenMeteoWeather({ city: req.query.city || 'Jaipur' });
-      return res.json({
-        city: fallback.city,
-        temperature: fallback.temperature,
-        feelsLike: fallback.feelsLike,
-        humidity: fallback.humidity,
-        condition: fallback.condition,
-        weatherIcon: null,
-        isHeatwave: fallback.temperature >= HEATWAVE_THRESHOLD,
-      });
-    }
-
-    const { city = 'Jaipur' } = req.query;
-
-    const response = await axios.get('http://api.weatherstack.com/current', {
-      params: {
-        access_key: WEATHERSTACK_KEY,
-        query: city,
-        units: 'm',
-      },
-      timeout: 8000,
-    });
-
-    const data = response.data;
-    if (data.error) {
-      throw new Error(data.error.info || data.error.type || 'WeatherStack error');
-    }
-
+    const data = await getOpenMeteoWeather({ city: req.query.city || 'Jaipur' });
     res.json({
-      city: data.location?.name,
-      temperature: data.current.temperature,
-      feelsLike: data.current.feelslike,
-      humidity: data.current.humidity,
-      condition: data.current.weather_descriptions?.[0],
-      weatherIcon: data.current.weather_icons?.[0],
-      isHeatwave: data.current.temperature >= HEATWAVE_THRESHOLD,
+      city: data.city,
+      temperature: data.temperature,
+      feelsLike: data.feelsLike,
+      humidity: data.humidity,
+      condition: data.condition,
+      weatherIcon: null,
+      isHeatwave: data.temperature >= HEATWAVE_THRESHOLD,
     });
   } catch (err) {
-    try {
-      const fallback = await getOpenMeteoWeather({ city: req.query.city || 'Jaipur' });
-      res.json({
-        city: fallback.city,
-        temperature: fallback.temperature,
-        feelsLike: fallback.feelsLike,
-        humidity: fallback.humidity,
-        condition: fallback.condition,
-        weatherIcon: null,
-        isHeatwave: fallback.temperature >= HEATWAVE_THRESHOLD,
-      });
-    } catch (fallbackErr) {
-      console.error('[Weather] Current weather fallback failed:', describeError(fallbackErr));
-      res.status(502).json({ error: 'Weather service unavailable.' });
-    }
+    console.error('[Weather] Current weather primary failed:', describeError(err));
+    res.status(502).json({ error: 'Weather service unavailable.' });
   }
 });
 
@@ -308,18 +273,29 @@ function buildHeatwaveResponse(fallback, user = {}) {
 }
 
 async function requestJson(baseUrl, params) {
-  const response = await axios.get(baseUrl, {
-    params,
-    timeout: 8000,
-    family: 4,
-    httpsAgent: IPV4_HTTPS_AGENT,
-    headers: {
-      Accept: 'application/json',
-      'User-Agent': 'KavachForWork/1.0',
-    },
-  });
-
-  return response.data;
+  try {
+    const response = await axios.get(baseUrl, {
+      params,
+      timeout: 8000,
+      family: 4,
+      httpsAgent: IPV4_HTTPS_AGENT,
+      headers: {
+        Accept: 'application/json',
+        'User-Agent': 'KavachForWork/1.0',
+      },
+    });
+    return response.data;
+  } catch (ipv4Err) {
+    const response = await axios.get(baseUrl, {
+      params,
+      timeout: 8000,
+      headers: {
+        Accept: 'application/json',
+        'User-Agent': 'KavachForWork/1.0',
+      },
+    });
+    return response.data;
+  }
 }
 
 function getWeatherCodeLabel(code) {

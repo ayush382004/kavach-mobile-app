@@ -30,7 +30,7 @@ export default function Dashboard() {
 
   // Live clock
   useEffect(() => {
-    const t = setInterval(() => setTime(new Date()), 1000);
+    const t = setInterval(() => setTime(new Date()), 60000);
     return () => clearInterval(t);
   }, []);
 
