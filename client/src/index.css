@@ -136,6 +136,8 @@
   position: relative;
   background: linear-gradient(160deg, #0d0d14 0%, #131320 60%, #1a0d24 100%);
   overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
   touch-action: pan-y;
 }
 
