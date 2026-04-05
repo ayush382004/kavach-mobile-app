@@ -110,10 +110,15 @@ export default function Chatbot() {
 
 function getLocalReply(text) {
   const t = text.toLowerCase();
+  
+  if (t.includes('hello') || t.includes('hi') || t.includes('namaste')) return 'Namaste! 🙏 Kavach Assistant aapki seva me hajir hai. Main aapki claims, wallet aur coverage se judi har problem solve kar sakta hoon. Kaise madad karun?';
+  if (t.includes('weather') || t.includes('heat') || t.includes('climate')) return '☀️ Kavach real-time heat alerts deta hai. Jab temperature aapke area me 45°C cross karta hai, Kavach automatically alert generate karta hai aur aapke app me claim file karne ka option aa jata hai. It is tied entirely to accurate Open-Meteo sensors.';
   if (t.includes('claim') || t.includes('file')) return '📋 To file a claim:\n1. Make sure your insurance is active\n2. Open "File Claim"\n3. Kavach checks weather at your location\n4. Sentry-AI verifies hardware and location signals\n5. Approved money is processed to your selected payout route.';
-  if (t.includes('premium') || t.includes('₹29')) return '💰 KavachForWork uses dynamic weekly pricing.\n\nYour premium depends on your registered state and city. The app shows your exact weekly amount before activation, and renewal works only if your wallet has enough balance.';
-  if (t.includes('fraud') || t.includes('ai') || t.includes('verify')) return '🤖 Our Sentry AI checks 8 signals:\n• Battery temperature\n• Network type\n• Screen brightness\n• GPS jitter & altitude\n• Battery drain rate\n\nYou can\'t fool it from an AC room! 🌡️';
-  if (t.includes('payout') || t.includes('money')) return '💸 Payouts depend on heat severity and your registered pricing slab.\n\nApproved claim money can be sent to your wallet, linked bank account, or UPI.';
-  if (t.includes('wallet') || t.includes('balance')) return '💳 To top up your wallet:\n1. Go to Wallet page\n2. Choose a quick amount or enter a custom amount\n3. Complete the mock payment flow\n4. Balance updates in the app';
-  return 'Namaste! Main samjha nahi. Please ek aur tarike se poochein, ya humse contact karein support@kavachforwork.in par. 🙏';
+  if (t.includes('premium') || t.includes('cost') || t.includes('how much') || t.includes('₹29')) return '💰 KavachForWork uses dynamic weekly pricing.\n\nYour premium depends on your registered state and city (Average is ₹29/week). The app shows your exact weekly amount before activation, and renewal works only if your wallet has enough balance. Ensure Wallet is topped up!';
+  if (t.includes('fraud') || t.includes('ai') || t.includes('verify')) return '🤖 Our Sentry AI checks 8 signals:\n• Battery temperature\n• Network type\n• Screen brightness\n• GPS jitter & altitude\n• Battery drain rate\n\nYou can\'t fool it from an AC room! 🌡️ Sentry prevents fake insurance claims instantly without human review.';
+  if (t.includes('payout') || t.includes('money') || t.includes('bank') || t.includes('upi')) return '💸 Payouts depend on heat severity and your registered pricing slab.\n\nApproved claim money can be sent to your wallet, linked bank account, or directly to your UPI ID. Payouts are made within seconds of an approved AI Sentry check.';
+  if (t.includes('wallet') || t.includes('balance') || t.includes('top')) return '💳 To top up your wallet:\n1. Go to Wallet page\n2. Choose a quick amount or enter a custom amount (Minimum ₹24)\n3. Complete the payment flow\n4. Balance updates instantly in the app so auto-premiums continue smoothly.';
+  if (t.includes('thanks') || t.includes('thank')) return 'Shukriya! 🙏 Hum humesha aapki madad ke liye yahan hain. Stay safe in the heat and keep working hard! Please contact support@kavachforwork.in if you need anything else.';
+  
+  return 'Main is sawal ka jawab abhi nahi de paa raha. Please in topics par poohein: Claims, Premium payments, Sentry AI Verification, ya Wallet top-up. 🙏';
 }

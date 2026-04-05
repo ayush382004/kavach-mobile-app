@@ -254,7 +254,7 @@ export default function Home() {
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 24, fontWeight: 800, color: '#fff' }}>{live.locationLabel}</div>
                   <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginTop: 2 }}>
-                    {live.weather?.condition || 'Waiting for signal'}
+                    {getWeatherEmoji(live.weather?.condition)} {live.weather?.condition || 'Waiting for signal'}
                   </div>
                 </div>
                 <div style={{ fontSize: 36, fontWeight: 900, color: '#f97316', whiteSpace: 'nowrap' }}>
@@ -303,6 +303,44 @@ export default function Home() {
                 <div style={{ fontSize: 12, fontWeight: 700, color: '#fff' }}>{feature.title}</div>
               </div>
             ))}
+          </div>
+
+          <div style={{ marginBottom: 20 }}>
+            <div style={{ fontSize: 14, fontWeight: 800, color: '#fff', marginBottom: 12, display: 'flex', justifyContent: 'space-between' }}>
+              <span>Live Sentry Feed</span>
+              <span style={{ color: '#ef4444', animation: 'pulse 2s infinite' }}>● Live</span>
+            </div>
+            
+            {user?.totalPayoutsReceived > 0 && (
+              <div className="glass fade-up" style={{ padding: 16, marginBottom: 16, border: '1px solid rgba(74, 222, 128, 0.3)', background: 'rgba(74, 222, 128, 0.05)' }}>
+                <div style={{ fontSize: 12, color: '#4ade80', fontWeight: 800 }}>YOUR TOTAL HEAT PAYOUTS</div>
+                <div style={{ fontSize: 24, fontWeight: 900, color: '#fff', marginTop: 4 }}>₹{user.totalPayoutsReceived}</div>
+              </div>
+            )}
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <div className="glass fade-up" style={{ padding: 14, borderLeft: '3px solid #4ade80' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>Approved: Delivery Rider</span>
+                  <span style={{ fontSize: 13, fontWeight: 800, color: '#4ade80' }}>+ ₹300</span>
+                </div>
+                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>Jaipur • 46°C verified • Payout issued to UPI</div>
+              </div>
+              <div className="glass fade-up" style={{ padding: 14, borderLeft: '3px solid #f97316', animationDelay: '0.1s' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>Suspicious Activity</span>
+                  <span style={{ fontSize: 13, fontWeight: 800, color: '#f97316' }}>Review</span>
+                </div>
+                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>Mumbai • AC room detected by Sentry AI 🥶 (Device temp low)</div>
+              </div>
+              <div className="glass fade-up" style={{ padding: 14, borderLeft: '3px solid #ef4444', animationDelay: '0.2s' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>Flagged Claim</span>
+                  <span style={{ fontSize: 13, fontWeight: 800, color: '#ef4444' }}>Denied</span>
+                </div>
+                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>Delhi • GPS Spoofing detected (Altitude varying randomly)</div>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -395,4 +433,13 @@ function getWeatherCodeLabel(code) {
 
 function formatLocationLabel(city, state) {
   return [city, state].filter(Boolean).join(', ');
+}
+
+function getWeatherEmoji(condition) {
+  if (!condition) return '☀️';
+  const c = condition.toLowerCase();
+  if (c.includes('rain') || c.includes('drizzle') || c.includes('shower') || c.includes('thunder')) return '🌧️';
+  if (c.includes('cloud') || c.includes('overcast')) return '☁️';
+  if (c.includes('fog')) return '🌫️';
+  return '☀️';
 }

@@ -99,6 +99,7 @@ export default function Wallet() {
       await payoutsAPI.configureUpi({ upiId });
       showToast('UPI Saved', 'Claims can be sent to UPI now.');
       await loadData();
+      setUpiId('');
     } catch (err) {
       showToast('Failed', 'Could not save UPI', 'error');
     } finally { setSavingMethod(false); }
@@ -271,9 +272,12 @@ export default function Wallet() {
             ) : (
                <div className="glass" style={{ padding: 20 }}>
                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-                    <div>
+                     <div>
                       <div style={{ fontSize: 14, fontWeight: 800, color: '#fff' }}>UPI Linked 📱</div>
                       <div style={{ fontSize: 12, color: '#4ade80' }}>Ready for transfers</div>
+                      <button onClick={() => setPayoutMethods(prev => prev.map(m => m.id === 'upi' ? { ...m, configured: false } : m))} style={{ marginTop: 8, background: 'transparent', border: '1px solid #f97316', color: '#f97316', padding: '4px 10px', borderRadius: 8, fontSize: 11, fontWeight: 700 }}>
+                        Change UPI ID
+                      </button>
                     </div>
                     <button onClick={() => updateDefaultMethod('upi')} style={{ background: defaultMethod==='upi'? '#f97316': 'rgba(255,255,255,0.1)', color:'#fff', border:'none', padding:'6px 12px', borderRadius:8, fontSize:11, fontWeight:700 }}>
                       {defaultMethod === 'upi' ? 'Current Default' : 'Set as Default'}
