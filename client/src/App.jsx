@@ -1,4 +1,7 @@
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
+import { useEffect } from 'react';
+import { BrowserRouter, HashRouter, Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
+import { Capacitor } from '@capacitor/core';
+import { App as CapacitorApp } from '@capacitor/app';
 import { AuthProvider, useAuth } from './hooks/useAuth.jsx';
 import { NotificationsProvider } from './hooks/useNotifications.jsx';
 
@@ -39,17 +42,58 @@ function PublicOnlyRoute({ children }) {
   return children;
 }
 
-import Splash from './components/Splash.jsx';
-import { useState } from 'react';
+function NativeBackHandler() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { user } = useAuth();
+
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) {
+      return undefined;
+    }
+
+    let removed = false;
+    let listener;
+
+    const register = async () => {
+      listener = await CapacitorApp.addListener('backButton', ({ canGoBack }) => {
+        if (canGoBack) {
+          window.history.back();
+          return;
+        }
+
+        if (location.pathname !== '/') {
+          navigate(user?.role === 'admin' ? '/admin' : '/', { replace: true });
+          return;
+        }
+
+        CapacitorApp.exitApp();
+      });
+
+      if (removed) {
+        listener.remove();
+      }
+    };
+
+    register().catch(() => {});
+
+    return () => {
+      removed = true;
+      listener?.remove();
+    };
+  }, [location.pathname, navigate, user?.role]);
+
+  return null;
+}
 
 export default function App() {
-  const [showSplash, setShowSplash] = useState(true);
+  const Router = Capacitor.isNativePlatform() ? HashRouter : BrowserRouter;
 
   return (
     <AuthProvider>
-      {showSplash && <Splash onFinish={() => setShowSplash(false)} />}
       <NotificationsProvider>
-        <BrowserRouter>
+        <Router>
+          <NativeBackHandler />
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/faqs" element={<FAQs />} />
@@ -69,7 +113,7 @@ export default function App() {
 
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
-        </BrowserRouter>
+        </Router>
       </NotificationsProvider>
     </AuthProvider>
   );

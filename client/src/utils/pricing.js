@@ -50,7 +50,9 @@ export const STATE_ALIASES = {
   Pondicherry: 'Puducherry',
 };
 
-export const INDIAN_STATES = LOCATION_PRICING.map((entry) => entry.state);
+export const INDIAN_STATES = LOCATION_PRICING
+  .map((entry) => entry.state)
+  .sort((a, b) => a.localeCompare(b));
 
 export function getCitiesForState() {
   return [];

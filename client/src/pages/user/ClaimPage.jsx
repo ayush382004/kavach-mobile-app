@@ -24,13 +24,16 @@ export default function ClaimPage() {
   const checkWeather = async () => {
     setChecking(true); setError('');
     try {
-      let city = user?.city || 'Jaipur';
+      const query = { city: user?.city || 'Jaipur' };
       try {
         const pos = await new Promise((res, rej) => navigator.geolocation?.getCurrentPosition(res, rej, { timeout: 5000 }));
-        setSensors(prev => ({ ...prev, _coords: { lat: pos.coords.latitude, lng: pos.coords.longitude } }));
+        const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+        setSensors(prev => ({ ...prev, _coords: coords }));
+        query.lat = coords.lat;
+        query.lng = coords.lng;
       } catch { }
 
-      const { data } = await weatherAPI.getHeatwave({ city });
+      const { data } = await weatherAPI.getHeatwave(query);
       setWeather(data); setStep(1);
     } catch (err) { setError(err.response?.data?.error || 'Could not fetch weather. Check internet connection.'); }
     finally { setChecking(false); }
