@@ -242,27 +242,14 @@ export default function Register() {
             </div>
 
             <div>
-              <label style={{ fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.5)', letterSpacing: '0.08em', display: 'block', marginBottom: 8 }}>CONFIRM PASSWORD</label>
               <input type={showPass ? 'text' : 'password'} value={form.confirmPassword} onChange={setField('confirmPassword')} placeholder="Confirm password" className="input-field" required minLength={6} />
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 4, background: 'rgba(255,255,255,0.03)', padding: '12px 14px', borderRadius: 12, border: '1px solid rgba(255,255,255,0.08)' }}>
-              <input 
-                type="checkbox" 
-                id="termsCheck"
-                checked={termsAccepted}
-                onChange={(e) => {
-                  if (e.target.checked) setTermsOpen(true);
-                  else setTermsAccepted(false);
-                }}
-                style={{ width: 18, height: 18, accentColor: '#f97316', cursor: 'pointer' }}
-              />
-              <label htmlFor="termsCheck" style={{ fontSize: 13, color: 'rgba(255,255,255,0.7)', cursor: 'pointer', lineHeight: 1.4 }}>
-                I agree to the <span onClick={(e) => { e.preventDefault(); setTermsOpen(true); }} style={{ color: '#f97316', fontWeight: 700, textDecoration: 'underline' }}>Terms and Conditions</span> and location checking.
-              </label>
+            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', textAlign: 'center' }}>
+              Terms & live location verification required on next step.
             </div>
 
-            <button type="submit" disabled={loading || form.phone.length < 10 || !termsAccepted} className="btn-primary" style={{ marginTop: 8, width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+            <button type="submit" disabled={loading || form.phone.length < 10} className="btn-primary" style={{ marginTop: 8, width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
               {loading ? <><span className="spinner" /> Creating…</> : <>Create Account →</>}
             </button>
           </form>
