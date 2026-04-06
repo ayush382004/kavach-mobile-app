@@ -81,41 +81,39 @@ router.get('/heatwave', protect, async (req, res) => {
 // ─── Current Weather ──────────────────────────────────────────────────────────
 router.get('/current', async (req, res) => {
   try {
-    const data = await getOpenMeteoWeather({
-      lat: req.query.lat,
-      lng: req.query.lng,
-      city: req.query.city || 'Jaipur',
-    });
-    const pricing = resolvePricing(req.query.state, data.city || req.query.city || 'Jaipur');
-    res.json({
-      city: data.city,
-      region: data.region,
-      temperature: data.temperature,
-      feelsLike: data.feelsLike,
-      humidity: data.humidity,
-      condition: data.condition,
-      weatherIcon: null,
-      isHeatwave: data.temperature >= HEATWAVE_THRESHOLD,
-      pricing,
-      payoutTier: getPayoutTier(data.temperature),
-      payoutAmount: getPayoutAmountForMax(pricing.maxPayout, data.temperature),
-      source: 'Open-Meteo',
-    });
-  } catch (err) {
-    console.error('[Weather] Current weather primary failed:', describeError(err));
-    try {
-      if (!canUseWeatherStack()) {
-        throw new Error('WeatherStack unavailable');
-      }
-
-      const fallback = await getWeatherStackWeather({
+    if (canUseWeatherStack()) {
+      const data = await getWeatherStackWeather({
         lat: req.query.lat,
         lng: req.query.lng,
         city: req.query.city || 'Jaipur',
         state: req.query.state,
       });
-
-      return res.json(fallback);
+      return res.json(data);
+    }
+    throw new Error('WeatherStack unavailable, falling back to Open-Meteo');
+  } catch (err) {
+    console.error('[Weather] Current weather primary failed:', describeError(err));
+    try {
+      const fallback = await getOpenMeteoWeather({
+        lat: req.query.lat,
+        lng: req.query.lng,
+        city: req.query.city || 'Jaipur',
+      });
+      const pricing = resolvePricing(req.query.state, fallback.city || req.query.city || 'Jaipur');
+      res.json({
+        city: fallback.city,
+        region: fallback.region,
+        temperature: fallback.temperature,
+        feelsLike: fallback.feelsLike,
+        humidity: fallback.humidity,
+        condition: fallback.condition,
+        weatherIcon: null,
+        isHeatwave: fallback.temperature >= HEATWAVE_THRESHOLD,
+        pricing,
+        payoutTier: getPayoutTier(fallback.temperature),
+        payoutAmount: getPayoutAmountForMax(pricing.maxPayout, fallback.temperature),
+        source: 'Open-Meteo',
+      });
     } catch (fallbackErr) {
       console.error('[Weather] Current weather fallback failed:', describeError(fallbackErr));
       res.status(502).json({ error: 'Weather service unavailable.' });

@@ -329,55 +329,19 @@ export default function Home() {
 }
 
 async function getClientWeatherFallback({ lat, lng, city, state }) {
-  let targetLat = lat;
-  let targetLng = lng;
-  let resolvedCity = city || 'Jaipur';
-
-  if (!targetLat || !targetLng) {
-    const geocodeUrl =
-      `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city || 'Jaipur')}` +
-      '&count=1&language=en&format=json';
-    const geoResponse = await fetch(geocodeUrl);
-    if (!geoResponse.ok) throw new Error('Weather lookup failed');
-    const geoData = await geoResponse.json();
-    const match = geoData?.results?.[0];
-    if (!match) throw new Error('Weather lookup failed');
-    targetLat = match.latitude;
-    targetLng = match.longitude;
-    resolvedCity = match.name || resolvedCity;
+  // Use the server API which has WeatherStack (more accurate real-time data)
+  // and fallback logic configured correctly.
+  const query = lat && lng ? { lat, lng } : { city: city || 'Jaipur' };
+  if (state) query.state = state;
+  
+  try {
+    const { weatherAPI } = await import('../utils/api.js');
+    const response = await weatherAPI.getCurrent(query);
+    return response.data;
+  } catch (error) {
+    console.error('Weather fallback to server failed', error);
+    throw new Error('Weather lookup failed');
   }
-
-  const forecastUrl =
-    `https://api.open-meteo.com/v1/forecast?latitude=${encodeURIComponent(targetLat)}` +
-    `&longitude=${encodeURIComponent(targetLng)}` +
-    '&current=temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,precipitation,weather_code' +
-    '&timezone=auto&forecast_days=1';
-
-  const weatherResponse = await fetch(forecastUrl);
-  if (!weatherResponse.ok) throw new Error('Weather lookup failed');
-  const weatherData = await weatherResponse.json();
-  const current = weatherData?.current;
-  if (!current) throw new Error('Weather lookup failed');
-
-  const pricing = resolvePricing(state, resolvedCity);
-  const temperature = Number(current.temperature_2m);
-
-  return {
-    city: resolvedCity,
-    state,
-    temperature,
-    feelsLike: Number(current.apparent_temperature),
-    humidity: Number(current.relative_humidity_2m),
-    windSpeed: Number(current.wind_speed_10m),
-    precipitation: Number(current.precipitation || 0),
-    condition: getWeatherCodeLabel(current.weather_code),
-    weatherIcon: null,
-    isHeatwave: temperature >= HEATWAVE_THRESHOLD,
-    payoutAmount: temperature >= HEATWAVE_THRESHOLD ? pricing.maxPayout : 0,
-    payoutTier: temperature >= HEATWAVE_THRESHOLD ? 'heatwave' : 'none',
-    pricing,
-    source: 'Open-Meteo fallback',
-  };
 }
 
 function getWeatherCodeLabel(code) {
