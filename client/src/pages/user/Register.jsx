@@ -98,7 +98,7 @@ export default function Register() {
         name: form.name,
         phone: form.phone,
         password: form.password,
-        workerType: 'delivery_driver',
+        workerType: form.workerType || 'delivery_driver',
         city: form.city,
         state: form.state,
         termsAccepted: true,
@@ -121,8 +121,11 @@ export default function Register() {
     if (form.phone.length < 10) return setError('Enter a valid 10-digit number');
     if (form.password.length < 6) return setError('Password must be at least 6 characters');
     if (form.password !== form.confirmPassword) return setError('Passwords do not match.');
-    
-    if (!termsAccepted || !deviceSynced || !locationVerification || !locationMatched) {
+    if (!form.city.trim()) return setError('Please enter your city.');
+
+    // Open terms modal — live verification is encouraged but not a hard block
+    // State mismatch at registration is warned about but only enforced at claim time
+    if (!termsAccepted) {
       setTermsOpen(true);
       return;
     }

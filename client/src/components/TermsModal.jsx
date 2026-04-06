@@ -132,7 +132,7 @@ export default function TermsModal({
           <button
             type="button"
             onClick={onAccept}
-            disabled={!syncReady || !locationMatched}
+            disabled={syncing}
             className="btn-primary disabled:cursor-not-allowed disabled:opacity-60"
           >
             Accept and continue

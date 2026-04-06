@@ -107,7 +107,7 @@ export default function App() {
             <Route path="/wallet" element={<PrivateRoute><Wallet /></PrivateRoute>} />
             <Route path="/claim" element={<PrivateRoute><ClaimPage /></PrivateRoute>} />
 
-            <Route path="/admin/login" element={<AdminLogin />} />
+            <Route path="/admin/login" element={<PublicOnlyRoute><AdminLogin /></PublicOnlyRoute>} />
             <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
             <Route path="/admin/*" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
 

@@ -1,6 +1,22 @@
 /** @type {import('tailwindcss').Config} */
 export default {
   content: ['./index.html', './src/**/*.{js,jsx}'],
+  safelist: [
+    // TermsModal uses these \u2014 safelist prevents purge in production
+    'fixed', 'inset-0', 'z-50', 'flex', 'items-center', 'justify-center',
+    'bg-stone-950/50', 'px-4', 'py-6', 'w-full', 'max-w-2xl', 'rounded-3xl',
+    'bg-white', 'shadow-2xl', 'border-b', 'border-stone-100', 'px-6', 'py-4',
+    'font-display', 'text-xl', 'font-bold', 'text-kavach-dark', 'mt-1',
+    'text-sm', 'text-gray-500', 'rounded-full', 'border', 'border-stone-200',
+    'px-3', 'py-1', 'text-gray-600', 'hover:bg-stone-50',
+    'max-h-[70vh]', 'space-y-4', 'overflow-y-auto', 'py-5', 'leading-7',
+    'text-gray-700', 'rounded-2xl', 'border-orange-100', 'bg-orange-50', 'p-4',
+    'font-semibold', 'text-xs', 'border-sky-100', 'bg-sky-50',
+    'text-green-700', 'text-amber-700', 'border-red-200', 'bg-red-50',
+    'text-red-700', 'flex-col', 'gap-3', 'border-t', 'sm:flex-row',
+    'sm:justify-end', 'disabled:cursor-not-allowed', 'disabled:opacity-60',
+    'mt-2',
+  ],
   theme: {
     extend: {
       colors: {

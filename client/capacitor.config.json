@@ -2,5 +2,18 @@
   "appId": "com.kavach.forwork",
   "appName": "KavachForWork",
   "webDir": "dist",
-  "bundledWebRuntime": false
+  "bundledWebRuntime": false,
+  "plugins": {
+    "Geolocation": {
+      "permissions": ["location"]
+    }
+  },
+  "android": {
+    "allowMixedContent": true,
+    "backgroundColor": "#0d0d14",
+    "buildOptions": {
+      "keystorePath": null,
+      "releaseType": "APK"
+    }
+  }
 }

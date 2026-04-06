@@ -5,12 +5,13 @@
 import { useCallback, useEffect, useState, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth.jsx';
-import { userAPI, walletAPI } from '../../utils/api.js';
+import { userAPI, walletAPI, weatherAPI } from '../../utils/api.js';
 import RiskRing from '../../components/RiskRing.jsx';
 import TelemetryWaveform from '../../components/TelemetryWaveform.jsx';
 import SwipeToActivate from '../../components/SwipeToActivate.jsx';
 import BottomNav from '../../components/BottomNav.jsx';
 import StatusPopup from '../../components/StatusPopup.jsx';
+import { getCurrentCoordinates } from '../../utils/location.js';
 
 export default function Dashboard() {
   const { user, refreshUser, logout } = useAuth();
@@ -48,29 +49,31 @@ export default function Dashboard() {
 
   const loadWeather = useCallback(async () => {
     try {
-      const city = user?.city || 'Jaipur';
-      const state = user?.state || 'Rajasthan';
-      // Call Open-Meteo directly from browser — free, no API key, no server needed
-      const geoRes = await fetch(
-        `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1&language=en&format=json`
-      );
-      const geoData = await geoRes.json();
-      const loc = geoData?.results?.[0];
-      if (!loc) throw new Error('Could not geocode city');
-      const wxRes = await fetch(
-        `https://api.open-meteo.com/v1/forecast?latitude=${loc.latitude}&longitude=${loc.longitude}&current=temperature_2m,apparent_temperature,relative_humidity_2m,weather_code&timezone=auto&forecast_days=1`
-      );
-      const wxData = await wxRes.json();
-      const temp = wxData?.current?.temperature_2m;
-      const weatherCodes = { 0:'Clear sky',1:'Mainly clear',2:'Partly cloudy',3:'Overcast',45:'Foggy',51:'Light drizzle',61:'Light rain',80:'Rain showers',95:'Thunderstorm' };
-      const condition = weatherCodes[wxData?.current?.weather_code] || 'Clear sky';
-      const HEATWAVE = 45;
+      const params = { city: user?.city || 'Jaipur', state: user?.state || 'Rajasthan' };
+
+      // Try to get live GPS for more accurate location-based weather
+      try {
+        const coords = await getCurrentCoordinates();
+        params.lat = coords.latitude;
+        params.lng = coords.longitude;
+      } catch {
+        // GPS unavailable — fall back to registered city
+      }
+
+      const { data } = await weatherAPI.getCurrent(params);
       setWeather({
-        city, temperature: temp, feelsLike: wxData?.current?.apparent_temperature,
-        humidity: wxData?.current?.relative_humidity_2m, condition,
-        isHeatwave: temp >= HEATWAVE,
+        city: data.city || params.city,
+        temperature: data.temperature,
+        feelsLike: data.feelsLike,
+        humidity: data.humidity,
+        condition: data.condition,
+        isHeatwave: data.isHeatwave,
+        payoutAmount: data.payoutAmount,
+        source: data.source,
       });
-    } catch {}
+    } catch {
+      // Weather is best-effort on dashboard — fail silently
+    }
   }, [user?.city, user?.state]);
 
   useEffect(() => { loadData(); loadWeather(); }, [loadData, loadWeather]);
