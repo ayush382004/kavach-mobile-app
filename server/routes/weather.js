@@ -10,6 +10,7 @@ const router = require('express').Router();
 const https = require('https');
 const axios = require('axios');
 const { protect } = require('../middleware/auth');
+const { cache } = require('../utils/cache');
 
 const WEATHERSTACK_KEY = process.env.WEATHERSTACK_API_KEY;
 if (!WEATHERSTACK_KEY) {
@@ -22,12 +23,17 @@ const OPEN_METEO_GEOCODING_URL = 'https://geocoding-api.open-meteo.com/v1/search
 const WEATHERSTACK_CURRENT_URL = 'https://api.weatherstack.com/current';
 const IPV4_HTTPS_AGENT = new https.Agent({ family: 4 });
 
+
 function canUseWeatherStack() {
   return typeof WEATHERSTACK_KEY === 'string' && WEATHERSTACK_KEY.trim().length > 0;
 }
 
 // ─── Heatwave Check (primary oracle for payout trigger) ───────────────────────
 router.get('/heatwave', protect, async (req, res) => {
+  const cacheKey = `hw:${req.query.lat || ''}:${req.query.lng || ''}:${(req.query.city || 'jaipur').toLowerCase()}`;
+  const cached = cache.get(cacheKey);
+  if (cached) return res.json({ ...cached, fromCache: true });
+
   try {
     const primary = await getOpenMeteoWeather({
       lat: req.query.lat,
@@ -35,7 +41,9 @@ router.get('/heatwave', protect, async (req, res) => {
       city: req.query.city,
       user: req.user,
     });
-    return res.json(buildHeatwaveResponse(primary, req.user));
+    const result = buildHeatwaveResponse(primary, req.user);
+    cache.set(cacheKey, result, 300);
+    return res.json(result);
   } catch (primaryErr) {
     console.error('[Weather] Open-Meteo primary failed:', describeError(primaryErr));
   }
@@ -52,7 +60,7 @@ router.get('/heatwave', protect, async (req, res) => {
     if (data.error) throw new Error(data.error.info || data.error.type || 'WeatherStack error');
     const temp = data.current.temperature;
     const pricing = resolvePricing(req.user?.state, data.location?.name || city || req.user?.city);
-    return res.json({
+    const result = {
       temperature: temp,
       feelsLike: data.current.feelslike,
       humidity: data.current.humidity,
@@ -69,7 +77,9 @@ router.get('/heatwave', protect, async (req, res) => {
       payoutAmount: getPayoutAmountForMax(pricing.maxPayout, temp),
       timestamp: data.location?.localtime,
       source: 'WeatherStack',
-    });
+    };
+    cache.set(cacheKey, result, 300);
+    return res.json(result);
   } catch (err) {
     console.error('[Weather] Heatwave check all sources failed:', err.message);
     res.status(502).json({ error: 'Weather API unavailable. Try again.' });
@@ -80,6 +90,10 @@ router.get('/heatwave', protect, async (req, res) => {
 
 // ─── Current Weather ──────────────────────────────────────────────────────────
 router.get('/current', async (req, res) => {
+  const cacheKey = `curr:${req.query.lat || ''}:${req.query.lng || ''}:${(req.query.city || 'jaipur').toLowerCase()}`;
+  const cached = cache.get(cacheKey);
+  if (cached) return res.json({ ...cached, fromCache: true });
+
   try {
     if (canUseWeatherStack()) {
       const data = await getWeatherStackWeather({
@@ -88,6 +102,7 @@ router.get('/current', async (req, res) => {
         city: req.query.city || 'Jaipur',
         state: req.query.state,
       });
+      cache.set(cacheKey, data, 180);
       return res.json(data);
     }
     throw new Error('WeatherStack unavailable, falling back to Open-Meteo');
@@ -100,7 +115,7 @@ router.get('/current', async (req, res) => {
         city: req.query.city || 'Jaipur',
       });
       const pricing = resolvePricing(req.query.state, fallback.city || req.query.city || 'Jaipur');
-      res.json({
+      const result = {
         city: fallback.city,
         region: fallback.region,
         temperature: fallback.temperature,
@@ -113,7 +128,9 @@ router.get('/current', async (req, res) => {
         payoutTier: getPayoutTier(fallback.temperature),
         payoutAmount: getPayoutAmountForMax(pricing.maxPayout, fallback.temperature),
         source: 'Open-Meteo',
-      });
+      };
+      cache.set(cacheKey, result, 180);
+      res.json(result);
     } catch (fallbackErr) {
       console.error('[Weather] Current weather fallback failed:', describeError(fallbackErr));
       res.status(502).json({ error: 'Weather service unavailable.' });

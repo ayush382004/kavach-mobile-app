@@ -295,7 +295,14 @@ def model_info():
 @app.get("/oracle/info")
 def oracle_info():
     if weather_model is None:
-        raise HTTPException(503, "Weather oracle model not loaded")
+        return {
+            "weather_model": {
+                "type": "HeuristicOracleFallback",
+                "model_version": "weather_oracle_v1_fallback",
+                "n_features": 4,
+                "feature_names": ["temperature_c", "humidity", "wind_speed_ms", "precipitation_mm"],
+            }
+        }
     return {
         "weather_model": {
             "type": type(weather_model).__name__,
@@ -308,20 +315,21 @@ def oracle_info():
 
 @app.post("/oracle/predict", response_model=WeatherOracleResponse)
 def oracle_predict(payload: WeatherOracleRequest):
-    if weather_model is None:
-        raise HTTPException(503, detail="Weather oracle model unavailable")
-
-    required_features = WEATHER_FEATURE_ORDER
-    if not required_features:
-        raise HTTPException(500, detail="Weather oracle feature metadata is missing")
-
+    required_features = WEATHER_FEATURE_ORDER or ["temperature_c", "humidity", "wind_speed_ms", "precipitation_mm"]
+    
     missing = [f for f in required_features if f not in payload.features]
     if missing:
         raise HTTPException(400, detail=f"Missing required features: {missing}")
 
-    data = {name: float(payload.features[name]) for name in required_features}
-    X = pd.DataFrame([data], columns=required_features)
-    raw_prediction = float(weather_model.predict(X)[0])
+    if weather_model is None:
+        # Fallback heuristic if model file is missing
+        temp_c = float(payload.features.get("temperature_c", 0))
+        raw_prediction = 1.0 if temp_c >= 45 else 0.0
+    else:
+        data = {name: float(payload.features[name]) for name in required_features}
+        X = pd.DataFrame([data], columns=required_features)
+        raw_prediction = float(weather_model.predict(X)[0])
+
     oracle_score = min(max(raw_prediction, 0.0), 1.0)
     is_heatwave = oracle_score >= 0.5
 
@@ -331,7 +339,7 @@ def oracle_predict(payload: WeatherOracleRequest):
         is_heatwave=is_heatwave,
         raw_prediction=raw_prediction,
         feature_names=required_features,
-        model_version="weather_oracle_v1",
+        model_version= "weather_oracle_v1" if weather_model else "weather_oracle_v1_fallback",
     )
 
 

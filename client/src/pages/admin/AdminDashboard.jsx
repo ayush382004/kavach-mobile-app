@@ -16,7 +16,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
-import { adminAPI } from '../../utils/api.js';
+import { adminAPI, claimsAPI } from '../../utils/api.js';
 import { useAuth } from '../../hooks/useAuth.jsx';
 import { SOCKET_URL } from '../../utils/runtime.js';
 
@@ -47,6 +47,31 @@ export default function AdminDashboard() {
   const [liveEvents, setLiveEvents] = useState([]);
   const [claimsFilter, setClaimsFilter] = useState('');
   const [reviewingId, setReviewingId] = useState(null);
+  const [aiStatus, setAiStatus] = useState(null);
+  const [cacheStats, setCacheStats] = useState(null);
+
+  // Enable admin scrolling mode
+  useEffect(() => {
+    document.documentElement.classList.add('admin-mode');
+    return () => document.documentElement.classList.remove('admin-mode');
+  }, []);
+
+  // Check AI model health
+  const checkAiStatus = useCallback(async () => {
+    try {
+      const { data } = await claimsAPI.getAiStatus();
+      setAiStatus(data);
+      // Store in localStorage as cache
+      const cacheEntry = { data, ts: Date.now() };
+      localStorage.setItem('kfw_ai_status_cache', JSON.stringify(cacheEntry));
+    } catch {
+      // Try cache
+      const cached = localStorage.getItem('kfw_ai_status_cache');
+      if (cached) {
+        try { setAiStatus(JSON.parse(cached).data); } catch {}
+      }
+    }
+  }, []);
 
   const loadData = useCallback(async () => {
     try {
@@ -63,8 +88,27 @@ export default function AdminDashboard() {
       setClaims(claimsRes.data.claims || []);
       setFraudStats(fraudRes.data);
       setWorkers(workersRes.data.workers || []);
+
+      // Store admin stats cache in localStorage
+      const adminCache = {
+        ts: Date.now(),
+        stats: statsRes.data,
+        fraudStats: fraudRes.data,
+      };
+      localStorage.setItem('kfw_admin_cache', JSON.stringify(adminCache));
+      setCacheStats({ lastUpdated: new Date(), source: 'live' });
     } catch (err) {
       console.error('[Admin] Load error:', err);
+      // Try to use cached admin data
+      const cached = localStorage.getItem('kfw_admin_cache');
+      if (cached) {
+        try {
+          const { stats: cachedStats, fraudStats: cachedFraud, ts } = JSON.parse(cached);
+          if (cachedStats) setStats(cachedStats);
+          if (cachedFraud) setFraudStats(cachedFraud);
+          setCacheStats({ lastUpdated: new Date(ts), source: 'cache' });
+        } catch {}
+      }
     } finally {
       setLoading(false);
     }
@@ -90,7 +134,14 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     loadData();
-  }, [loadData]);
+    checkAiStatus();
+  }, [loadData, checkAiStatus]);
+
+  // Refresh AI status every 30 seconds
+  useEffect(() => {
+    const t = setInterval(checkAiStatus, 30_000);
+    return () => clearInterval(t);
+  }, [checkAiStatus]);
 
   const handleClaim = async (id, action, note = '') => {
     setReviewingId(id);
@@ -119,7 +170,7 @@ export default function AdminDashboard() {
     : [];
 
   return (
-    <div style={{ minHeight: '100vh', background: '#fafaf9', fontFamily: "'Inter','Outfit',sans-serif", overflowY: 'auto' }}>
+    <div className="admin-layout">
       <nav className="sticky top-0 z-50 border-b border-orange-100 bg-white shadow-sm">
         <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4">
           <div className="flex items-center gap-3">
@@ -133,10 +184,33 @@ export default function AdminDashboard() {
             </span>
           </div>
           <div className="flex items-center gap-2">
+            {/* AI Model Status Badge */}
+            <div className={`flex items-center gap-1.5 rounded-full px-2 py-1 ${
+              aiStatus === null ? 'bg-gray-50' :
+              aiStatus.online && aiStatus.fraudModelReady ? 'bg-green-50' : 'bg-red-50'
+            }`}>
+              <span className={`h-1.5 w-1.5 rounded-full ${
+                aiStatus === null ? 'bg-gray-400' :
+                aiStatus.online && aiStatus.fraudModelReady ? 'bg-green-400 animate-pulse' : 'bg-red-400'
+              }`} />
+              <span className={`text-xs font-medium ${
+                aiStatus === null ? 'text-gray-500' :
+                aiStatus.online && aiStatus.fraudModelReady ? 'text-green-700' : 'text-red-600'
+              }`}>
+                AI: {aiStatus === null ? '...' : aiStatus.online && aiStatus.fraudModelReady ? 'Online' : 'Offline'}
+              </span>
+            </div>
             <div className="flex items-center gap-1.5 rounded-full bg-green-50 px-2 py-1">
               <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-green-400" />
               <span className="text-xs font-medium text-green-700">Live</span>
             </div>
+            {cacheStats && (
+              <div className="hidden md:flex items-center gap-1 rounded-full bg-blue-50 px-2 py-1">
+                <span className="text-xs text-blue-600">
+                  {cacheStats.source === 'cache' ? '📦 Cached' : '🔄 Live'}
+                </span>
+              </div>
+            )}
             <button onClick={() => { logout(); navigate('/'); }} className="px-3 py-1.5 text-sm text-gray-400 hover:text-red-500">
               Logout
             </button>
@@ -277,6 +351,43 @@ export default function AdminDashboard() {
                   <KPICard label="Legitimate" value={fraudStats?.legitimate || 0} />
                   <KPICard label="Flagged Fraud" value={fraudStats?.flaggedFraud || 0} />
                   <KPICard label="Money Saved" value={`₹${Math.round(fraudStats?.moneySaved || 0)}`} />
+                </div>
+
+                {/* AI Model Status Panel */}
+                <div className="card">
+                  <h2 className="mb-4 font-display font-bold text-kavach-dark">AI Fraud Model Status</h2>
+                  <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
+                    <div className={`rounded-xl p-4 border ${
+                      aiStatus?.online ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'
+                    }`}>
+                      <div className={`text-2xl font-bold ${ aiStatus?.online ? 'text-green-600' : 'text-red-600'}`}>
+                        {aiStatus === null ? '...' : aiStatus.online ? '✓ Online' : '✗ Offline'}
+                      </div>
+                      <div className="text-sm text-gray-500 mt-1">AI Service</div>
+                    </div>
+                    <div className={`rounded-xl p-4 border ${
+                      aiStatus?.fraudModelReady ? 'border-green-200 bg-green-50' : 'border-amber-200 bg-amber-50'
+                    }`}>
+                      <div className={`text-2xl font-bold ${ aiStatus?.fraudModelReady ? 'text-green-600' : 'text-amber-600'}`}>
+                        {aiStatus === null ? '...' : aiStatus.fraudModelReady ? '✓ Loaded' : '✗ Not Ready'}
+                      </div>
+                      <div className="text-sm text-gray-500 mt-1">Sentry Fraud Model (RF)</div>
+                    </div>
+                    <div className={`rounded-xl p-4 border ${
+                      aiStatus?.weatherModelReady ? 'border-green-200 bg-green-50' : 'border-amber-200 bg-amber-50'
+                    }`}>
+                      <div className={`text-2xl font-bold ${ aiStatus?.weatherModelReady ? 'text-green-600' : 'text-amber-600'}`}>
+                        {aiStatus === null ? '...' : aiStatus.weatherModelReady ? '✓ Loaded' : '✗ Not Ready'}
+                      </div>
+                      <div className="text-sm text-gray-500 mt-1">Weather Oracle Model</div>
+                    </div>
+                  </div>
+                  {aiStatus && (
+                    <div className="mt-3 text-xs text-gray-400">
+                      Service URL: <code className="bg-gray-100 px-1 rounded">{aiStatus.serviceUrl}</code>
+                      {' · '}Status: <span className={aiStatus.online ? 'text-green-600' : 'text-red-500'}>{aiStatus.status}</span>
+                    </div>
+                  )}
                 </div>
 
                 <div className="grid gap-4 md:grid-cols-2">
