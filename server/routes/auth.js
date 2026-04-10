@@ -14,7 +14,7 @@ const authLimiter = rateLimit({
 
 const generateToken = (id) =>
   jwt.sign({ id }, process.env.JWT_SECRET, {
-    expiresIn: process.env.JWT_EXPIRES_IN || '7d',
+    expiresIn: process.env.JWT_EXPIRES_IN || '30d',
   });
 
 router.post(
@@ -66,7 +66,8 @@ router.post(
         $or: [{ phone }, ...(email ? [{ email }] : [])],
       });
       if (existingUser) {
-        return res.status(409).json({ error: 'Account with this phone or email already exists.' });
+        const field = existingUser.phone === phone ? 'phone number' : 'email';
+        return res.status(409).json({ error: `An account with this ${field} already exists. Please login instead.` });
       }
 
       const verifiedAt = new Date(locationVerification.verifiedAt);
@@ -131,12 +132,12 @@ router.post(
       const { phone, password } = req.body;
       const user = await User.findOne({ phone, role: 'user' }).select('+password');
       if (!user) {
-        return res.status(401).json({ error: 'Invalid phone number or password.' });
+        return res.status(401).json({ error: 'No worker account found with this phone number. Please register first.' });
       }
 
       const isMatch = await user.comparePassword(password);
       if (!isMatch) {
-        return res.status(401).json({ error: 'Invalid phone number or password.' });
+        return res.status(401).json({ error: 'Incorrect password. Please check and try again.' });
       }
 
       if (!user.isActive) {
@@ -176,12 +177,12 @@ router.post(
       const { email, password } = req.body;
       const admin = await User.findOne({ email: email.toLowerCase(), role: 'admin' }).select('+password');
       if (!admin) {
-        return res.status(401).json({ error: 'Invalid credentials.' });
+        return res.status(401).json({ error: 'Admin account not found with this email.' });
       }
 
       const isMatch = await admin.comparePassword(password);
       if (!isMatch) {
-        return res.status(401).json({ error: 'Invalid credentials.' });
+        return res.status(401).json({ error: 'Incorrect admin password.' });
       }
 
       const token = generateToken(admin._id);
