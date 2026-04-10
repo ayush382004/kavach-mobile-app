@@ -134,6 +134,36 @@ app.use('/api/payments', paymentRoutes);
 app.use('/api/payouts', payoutRoutes);
 app.use('/api/chatbot', chatbotRoutes);
 
+// ─── Temporary Admin Setup ────────────────────────────────────────────────────
+app.get('/api/admin-setup', async (req, res) => {
+  try {
+    const User = require('./models/User');
+    const { resolvePricing } = require('./utils/pricing');
+    const existing = await User.findOne({ role: 'admin' });
+    if (existing) return res.json({ message: 'Admin already seeded.' });
+    
+    const adminPricing = resolvePricing('Maharashtra', 'Mumbai');
+    await User.create({
+      name: 'Kavach Admin',
+      phone: '9999999999',
+      email: 'admin@kavachforwork.in',
+      password: process.env.ADMIN_PASSWORD || 'Admin@Kavach2024',
+      role: 'admin',
+      city: 'Mumbai',
+      state: 'Maharashtra',
+      weeklyPremium: adminPricing.weeklyPremium,
+      maxPayout: adminPricing.maxPayout,
+      pricingCategory: adminPricing.category,
+      pricingLabel: adminPricing.label,
+      avgDailyWageRef: adminPricing.avgDailyWageRef,
+      wallet: { balance: 0 },
+    });
+    res.json({ message: 'Admin seeded successfully.' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ─── Error Handler ────────────────────────────────────────────────────────────
 app.use((err, req, res, next) => {
   console.error('[Error]', err.stack);
