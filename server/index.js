@@ -74,19 +74,22 @@ io.on('connection', (socket) => {
 // ─── Middleware ───────────────────────────────────────────────────────────────
 const ALLOWED_ORIGINS = [
   // Live Render frontend (any subdomain on onrender.com)
-  /^https:\/\/[a-z0-9-]+\.onrender\.com$/,
-  // Capacitor Android app origins
+  /\.onrender\.com$/,
+  // Mobile app origins
   'capacitor://localhost',
   'https://localhost',
   'http://localhost',
-  // Vite dev server
   'http://localhost:5173',
   'http://localhost:5174',
-  // LAN access from phones during development
   /^http:\/\/192\.168\.\d+\.\d+:\d+$/,
   /^http:\/\/10\.\d+\.\d+\.\d+:\d+$/,
   /^http:\/\/172\.\d+\.\d+\.\d+:\d+$/,
 ];
+
+// Add specific CLIENT_URL if defined in environment
+if (process.env.CLIENT_URL) {
+  ALLOWED_ORIGINS.push(process.env.CLIENT_URL);
+}
 
 app.use(cors({
   origin: (origin, callback) => {
