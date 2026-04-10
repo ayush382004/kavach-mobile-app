@@ -93,7 +93,7 @@ export default function Home() {
   }, [user?.city, user?.state]);
 
   useEffect(() => {
-    loadLiveSnapshot().catch(() => {});
+    loadLiveSnapshot().catch(() => { });
   }, [loadLiveSnapshot]);
 
   if (showSplash && !user) {
@@ -198,7 +198,7 @@ export default function Home() {
                 </span>
                 <button
                   type="button"
-                  onClick={() => loadLiveSnapshot(true).catch(() => {})}
+                  onClick={() => loadLiveSnapshot(true).catch(() => { })}
                   disabled={live.refreshing}
                   style={{
                     border: '1px solid rgba(255,255,255,0.12)',
@@ -282,7 +282,7 @@ export default function Home() {
               <span>Live Sentry Feed</span>
               <span style={{ color: '#ef4444', animation: 'pulse 2s infinite' }}>● Live</span>
             </div>
-            
+
             {user?.totalPayoutsReceived > 0 && (
               <div className="glass fade-up" style={{ padding: 16, marginBottom: 16, border: '1px solid rgba(74, 222, 128, 0.3)', background: 'rgba(74, 222, 128, 0.05)' }}>
                 <div style={{ fontSize: 12, color: '#4ade80', fontWeight: 800 }}>YOUR TOTAL HEAT PAYOUTS</div>
@@ -333,7 +333,7 @@ async function getClientWeatherFallback({ lat, lng, city, state }) {
   // and fallback logic configured correctly.
   const query = lat && lng ? { lat, lng } : { city: city || 'Jaipur' };
   if (state) query.state = state;
-  
+
   try {
     const { weatherAPI } = await import('../utils/api.js');
     const response = await weatherAPI.getCurrent(query);

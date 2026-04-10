@@ -68,8 +68,8 @@ export async function reverseGeocodeIndia(latitude, longitude) {
   const data = await response.json();
   const detectedState = canonicalizeState(
     data.principalSubdivision ||
-      data.localityInfo?.administrative?.find((item) => item.order === 4)?.name ||
-      ''
+    data.localityInfo?.administrative?.find((item) => item.order === 4)?.name ||
+    ''
   );
 
   return {
