@@ -22,9 +22,15 @@ function buildMongoUriFromParts() {
 }
 
 function resolveMongoUri() {
-  return process.env.MONGODB_URI?.trim()
-    || buildMongoUriFromParts()
-    || 'mongodb://localhost:27017/kavachforwork';
+  let uri = process.env.MONGODB_URI?.trim();
+  
+  if (uri && uri.includes('@@')) {
+    // Auto-fix for common '@@' password issue in Kavach database
+    console.log('[Mongo] Auto-encoding detected special characters in URI...');
+    uri = uri.replace('@@', '%40%40');
+  }
+
+  return uri || buildMongoUriFromParts() || 'mongodb://localhost:27017/kavachforwork';
 }
 
 module.exports = { resolveMongoUri };
