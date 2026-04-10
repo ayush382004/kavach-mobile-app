@@ -41,7 +41,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ─── Lazy Load Models ────────────────────────────────────────────────────────
+# ─── Lazy Load Models (Thread Safe) ──────────────────────────────────────────
 BASE_DIR = Path(__file__).parent
 MODEL_PATH = BASE_DIR / "sentry_AI_fraud_.joblib"
 WEATHER_MODEL_CANDIDATES = [
@@ -51,46 +51,46 @@ WEATHER_MODEL_CANDIDATES = [
 WEATHER_MODEL_PATH = next((path for path in WEATHER_MODEL_CANDIDATES if path.exists()), WEATHER_MODEL_CANDIDATES[0])
 
 _MODEL_CACHE = {"fraud": None, "weather": None}
+_model_lock = threading.Lock()
 
 def get_fraud_model():
+    """Thread-safe lazy loading for the fraud detection model."""
     if _MODEL_CACHE["fraud"] is None:
-        try:
-            if MODEL_PATH.exists():
-                logger.info("Loading fraud model (mmap mode)...")
-                # Using mmap_mode='r' to read from disk instead of loading full 100MB into RAM at once
-                _MODEL_CACHE["fraud"] = joblib.load(MODEL_PATH, mmap_mode='r')
-                logger.info(f"✓ Fraud model ready: {type(_MODEL_CACHE['fraud'])}")
-            else:
-                logger.warning(f"⚠️ Fraud model file missing: {MODEL_PATH}")
-        except MemoryError:
-            logger.error("❌ CRITICAL: Out of Memory while loading fraud model!")
-            _MODEL_CACHE["fraud"] = None
-        except Exception as e:
-            logger.error(f"✗ Failed to load fraud model: {e}")
+        with _model_lock:
+            # Double-check pattern to prevent race during lock acquisition
+            if _MODEL_CACHE["fraud"] is None:
+                try:
+                    if MODEL_PATH.exists():
+                        _MODEL_CACHE["fraud"] = joblib.load(MODEL_PATH, mmap_mode='r')
+                    else:
+                        logger.warning(f"Fraud model file missing: {MODEL_PATH}")
+                except MemoryError:
+                    logger.error("Out of Memory while loading fraud model!")
+                    _MODEL_CACHE["fraud"] = None
+                except Exception as e:
+                    logger.error(f"Failed to load fraud model: {e}")
     return _MODEL_CACHE["fraud"]
 
 def get_weather_model():
+    """Thread-safe lazy loading for the weather oracle model."""
     if _MODEL_CACHE["weather"] is None:
-        try:
-            if WEATHER_MODEL_PATH.exists():
-                logger.info("Loading weather oracle (mmap mode)...")
-                # Memory efficient loading for Render free tier (512MB RAM)
-                _MODEL_CACHE["weather"] = joblib.load(WEATHER_MODEL_PATH, mmap_mode='r')
-                logger.info(f"✓ Weather oracle ready: {type(_MODEL_CACHE['weather'])}")
-            else:
-                logger.warning(f"⚠️ Weather oracle file missing: {WEATHER_MODEL_PATH}")
-        except MemoryError:
-            logger.error("❌ CRITICAL: Out of Memory while loading weather model!")
-            _MODEL_CACHE["weather"] = None
-        except Exception as e:
-            logger.error(f"✗ Failed to load weather oracle model: {e}")
+        with _model_lock:
+            if _MODEL_CACHE["weather"] is None:
+                try:
+                    if WEATHER_MODEL_PATH.exists():
+                        _MODEL_CACHE["weather"] = joblib.load(WEATHER_MODEL_PATH, mmap_mode='r')
+                    else:
+                        logger.warning(f"Weather model file missing: {WEATHER_MODEL_PATH}")
+                except MemoryError:
+                    logger.error("Out of Memory while loading weather model!")
+                    _MODEL_CACHE["weather"] = None
+                except Exception as e:
+                    logger.error(f"Failed to load weather model: {e}")
     return _MODEL_CACHE["weather"]
 
 @app.on_event("startup")
 def preload_models_background():
-    """Start loading models in a separate thread so startup is instant but RAM is warmed up."""
     import threading
-    logger.info("Starting background model preloading...")
     threading.Thread(target=get_fraud_model, daemon=True).start()
     threading.Thread(target=get_weather_model, daemon=True).start()
 
