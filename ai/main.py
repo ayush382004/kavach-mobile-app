@@ -13,6 +13,9 @@ Features used by the model:
   altitude_variance   - GPS altitude variance (outdoor movement)
 """
 
+import logging
+import threading
+from pathlib import Path
 import warnings
 warnings.filterwarnings("ignore")
 
@@ -22,12 +25,11 @@ from pydantic import BaseModel, Field, validator
 import joblib
 import numpy as np
 import pandas as pd
-from pathlib import Path
-import logging
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.WARNING)
 logger = logging.getLogger("kavach-ai")
 
+# ─── App Configuration ────────────────────────────────────────────────────────
 app = FastAPI(
     title="KavachForWork AI Service",
     description="Heatwave insurance fraud detection using Random Forest",
