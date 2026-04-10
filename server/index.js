@@ -93,14 +93,19 @@ if (process.env.CLIENT_URL) {
 
 app.use(cors({
   origin: (origin, callback) => {
-    // Allow requests with no origin (mobile apps, Postman, cURL)
+    // Allow requests with no origin (mobile apps, Postman)
     if (!origin) return callback(null, true);
-    const allowed = ALLOWED_ORIGINS.some(o =>
-      typeof o === 'string' ? o === origin : o.test(origin)
-    );
-    if (allowed) return callback(null, true);
-    console.warn('[CORS] Blocked origin:', origin);
-    return callback(new Error('Not allowed by CORS'));
+    
+    const isRender = origin.endsWith('.onrender.com');
+    const isLocal = origin.includes('localhost') || origin.includes('192.168.') || origin.includes('10.') || origin.includes('172.');
+    const isCustomClient = process.env.CLIENT_URL && origin === process.env.CLIENT_URL;
+
+    if (isRender || isLocal || isCustomClient) {
+      return callback(null, true);
+    }
+    
+    // Return false instead of Error to avoid crashing the request chain
+    return callback(null, false);
   },
   credentials: true,
 }));

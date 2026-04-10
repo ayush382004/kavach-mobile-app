@@ -177,15 +177,24 @@
   }
 }
 
-/* Laptop / Desktop: wider layout */
+/* Laptop / Desktop: wider layout but keep it centered and mobile-friendly */
 @media (min-width: 1024px) {
   #root {
-    align-items: flex-start;
+    align-items: center;
   }
   .phone-screen {
-    max-width: 900px;
-    border-left: 1px solid rgba(255,255,255,0.05);
-    border-right: 1px solid rgba(255,255,255,0.05);
+    max-width: 450px; /* Force mobile width even on desktop for consistent look */
+    height: 90vh;
+    border-radius: 40px;
+    margin: 20px 0;
+    border: 8px solid #1a1a2e;
+    box-shadow: 0 0 50px rgba(0,0,0,0.5);
+  }
+  .bottom-nav {
+    max-width: 450px;
+    margin-bottom: 20px;
+    border-bottom-left-radius: 32px;
+    border-bottom-right-radius: 32px;
   }
   .page-content {
     padding-bottom: 120px;
