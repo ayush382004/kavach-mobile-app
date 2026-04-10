@@ -4,9 +4,11 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "build:web": "cd ../client && npm run build",
+    "build:web": "cd ../client && npm run build:mobile",
     "sync": "npm run build:web && npx cap sync android",
-    "open:android": "npx cap open android"
+    "open:android": "npx cap open android",
+    "build:debug": "npm run sync && cd android && gradlew.bat assembleDebug",
+    "build:release": "npm run sync && cd android && gradlew.bat assembleRelease"
   },
   "dependencies": {
     "@capacitor/app": "^5.0.7",

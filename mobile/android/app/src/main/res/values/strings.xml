@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">KavachForWork</string>
-    <string name="title_activity_main">KavachForWork</string>
+    <string name="app_name">Kavach For Work</string>
+    <string name="title_activity_main">Kavach For Work</string>
     <string name="package_name">in.kavachforwork.app</string>
     <string name="custom_url_scheme">in.kavachforwork.app</string>
 </resources>
