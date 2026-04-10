@@ -12,20 +12,20 @@ const axios = require('axios');
 const { protect } = require('../middleware/auth');
 const { cache } = require('../utils/cache');
 
-const WEATHERSTACK_KEY = process.env.WEATHERSTACK_API_KEY;
-if (!WEATHERSTACK_KEY) {
-  console.warn('⚠️  WARNING: WEATHERSTACK_API_KEY not set in environment. Weather routes will fail.');
+const OPENWEATHER_KEY = process.env.OPENWEATHER_API_KEY;
+if (!OPENWEATHER_KEY) {
+  console.warn('⚠️  WARNING: OPENWEATHER_API_KEY not set in environment. Using Open-Meteo as primary.');
 }
 const { getPayoutTier, getPayoutAmountForMax, HEATWAVE_THRESHOLD } = require('../utils/constants');
 const { resolvePricing } = require('../utils/pricing');
 const OPEN_METEO_FORECAST_URL = 'https://api.open-meteo.com/v1/forecast';
 const OPEN_METEO_GEOCODING_URL = 'https://geocoding-api.open-meteo.com/v1/search';
-const WEATHERSTACK_CURRENT_URL = 'https://api.weatherstack.com/current';
+const OPENWEATHER_CURRENT_URL = 'https://api.openweathermap.org/data/2.5/weather';
 const IPV4_HTTPS_AGENT = new https.Agent({ family: 4 });
 
 
-function canUseWeatherStack() {
-  return typeof WEATHERSTACK_KEY === 'string' && WEATHERSTACK_KEY.trim().length > 0;
+function canUseOpenWeather() {
+  return typeof OPENWEATHER_KEY === 'string' && OPENWEATHER_KEY.trim().length > 0;
 }
 
 // ─── Heatwave Check (primary oracle for payout trigger) ───────────────────────
@@ -49,34 +49,33 @@ router.get('/heatwave', protect, async (req, res) => {
   }
 
   try {
-    if (!canUseWeatherStack()) throw new Error('WeatherStack unavailable');
+    if (!canUseOpenWeather()) throw new Error('OpenWeather unavailable');
     const { lat, lng, city } = req.query;
-    const query = (lat && lng) ? `${lat},${lng}` : (city || 'Jaipur');
-    const response = await axios.get(WEATHERSTACK_CURRENT_URL, {
-      params: { access_key: WEATHERSTACK_KEY, query, units: 'm' },
-      timeout: 8000,
-    });
+    const params = lat && lng 
+      ? { lat, lon: lng, appid: OPENWEATHER_KEY, units: 'metric' } 
+      : { q: city || 'Jaipur', appid: OPENWEATHER_KEY, units: 'metric' };
+      
+    const response = await axios.get(OPENWEATHER_CURRENT_URL, { params, timeout: 8000 });
     const data = response.data;
-    if (data.error) throw new Error(data.error.info || data.error.type || 'WeatherStack error');
-    const temp = data.current.temperature;
+    const temp = data.main.temp;
     const pricing = resolvePricing(req.user?.state, data.location?.name || city || req.user?.city);
     const result = {
       temperature: temp,
-      feelsLike: data.current.feelslike,
-      humidity: data.current.humidity,
-      uvIndex: data.current.uv_index,
-      windSpeed: data.current.wind_speed,
-      precipitation: data.current.precip || 0,
-      condition: data.current.weather_descriptions?.[0] || 'Clear',
-      weatherIcon: data.current.weather_icons?.[0],
-      city: data.location?.name, region: data.location?.region, country: data.location?.country,
+      feelsLike: data.main.feels_like,
+      humidity: data.main.humidity,
+      uvIndex: null, // OpenWeather free tier doesn't include UV in the standard endpoint
+      windSpeed: data.wind.speed,
+      precipitation: data.rain ? data.rain['1h'] || 0 : 0,
+      condition: data.weather?.[0]?.description || 'Clear',
+      weatherIcon: data.weather?.[0]?.icon,
+      city: data.name, region: '', country: data.sys?.country,
       isHeatwave: temp >= HEATWAVE_THRESHOLD,
       heatwaveThreshold: HEATWAVE_THRESHOLD,
       pricing,
       payoutTier: getPayoutTier(temp),
       payoutAmount: getPayoutAmountForMax(pricing.maxPayout, temp),
-      timestamp: data.location?.localtime,
-      source: 'WeatherStack',
+      timestamp: data.dt,
+      source: 'OpenWeather',
     };
     cache.set(cacheKey, result, 300);
     return res.json(result);
@@ -95,8 +94,8 @@ router.get('/current', async (req, res) => {
   if (cached) return res.json({ ...cached, fromCache: true });
 
   try {
-    if (canUseWeatherStack()) {
-      const data = await getWeatherStackWeather({
+    if (canUseOpenWeather()) {
+      const data = await getOpenWeather({
         lat: req.query.lat,
         lng: req.query.lng,
         city: req.query.city || 'Jaipur',
@@ -105,7 +104,7 @@ router.get('/current', async (req, res) => {
       cache.set(cacheKey, data, 180);
       return res.json(data);
     }
-    throw new Error('WeatherStack unavailable, falling back to Open-Meteo');
+    throw new Error('OpenWeather unavailable, falling back to Open-Meteo');
   } catch (err) {
     console.error('[Weather] Current weather primary failed:', describeError(err));
     try {
@@ -218,38 +217,30 @@ async function getOpenMeteoWeather({ lat, lng, city, user }) {
   };
 }
 
-async function getWeatherStackWeather({ lat, lng, city, state }) {
-  const query = lat && lng ? `${lat},${lng}` : city || 'Jaipur';
-  const response = await axios.get(WEATHERSTACK_CURRENT_URL, {
-    params: {
-      access_key: WEATHERSTACK_KEY,
-      query,
-      units: 'm',
-    },
-    timeout: 8000,
-  });
-
+async function getOpenWeather({ lat, lng, city, state }) {
+  const params = lat && lng 
+    ? { lat, lon: lng, appid: OPENWEATHER_KEY, units: 'metric' } 
+    : { q: city || 'Jaipur', appid: OPENWEATHER_KEY, units: 'metric' };
+    
+  const response = await axios.get(OPENWEATHER_CURRENT_URL, { params, timeout: 8000 });
   const data = response.data;
-  if (data.error) {
-    throw new Error(data.error.info || data.error.type || 'WeatherStack error');
-  }
-
-  const pricing = resolvePricing(state, data.location?.name || city || 'Jaipur');
-  const temperature = data.current.temperature;
+  
+  const pricing = resolvePricing(state, data.name || city || 'Jaipur');
+  const temperature = data.main.temp;
 
   return {
-    city: data.location?.name || city || 'Jaipur',
-    region: data.location?.region || state || '',
+    city: data.name || city || 'Jaipur',
+    region: state || '',
     temperature,
-    feelsLike: data.current.feelslike,
-    humidity: data.current.humidity,
-    condition: data.current.weather_descriptions?.[0] || 'Clear',
-    weatherIcon: data.current.weather_icons?.[0] || null,
+    feelsLike: data.main.feels_like,
+    humidity: data.main.humidity,
+    condition: data.weather?.[0]?.description || 'Clear',
+    weatherIcon: data.weather?.[0]?.icon || null,
     isHeatwave: temperature >= HEATWAVE_THRESHOLD,
     pricing,
     payoutTier: getPayoutTier(temperature),
     payoutAmount: getPayoutAmountForMax(pricing.maxPayout, temperature),
-    source: 'WeatherStack',
+    source: 'OpenWeather',
   };
 }
 
