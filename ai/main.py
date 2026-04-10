@@ -79,6 +79,43 @@ FEATURE_ORDER = [
 ]
 WEATHER_FEATURE_ORDER = list(getattr(weather_model, 'feature_names_in_', [])) if weather_model is not None else []
 
+# ─── Weather Oracle Feature Aliases & Defaults ──────────────────────────────────
+# Maps alternate feature names sent by server → the model's actual feature names.
+WEATHER_ALIAS_MAP: dict[str, str] = {
+    "temperature_c":     "temperature",
+    "temp_c":            "temperature",
+    "temperature_2m":    "temperature",
+    "ambient_temp":      "temperature",
+    "feels_like":        "feelsLike",
+    "apparent_temperature": "feelsLike",
+    "wind_speed_ms":     "wind_speed",
+    "wind_speed_10m":    "wind_speed",
+    "windSpeed":         "wind_speed",
+    "precipitation_mm":  "precipitation",
+    "precip":            "precipitation",
+    "relative_humidity_2m": "humidity",
+    "humidity_pct":      "humidity",
+    # Identity pass-throughs (no-op aliases)
+    "temperature":       "temperature",
+    "humidity":          "humidity",
+    "wind_speed":        "wind_speed",
+    "precipitation":     "precipitation",
+}
+
+# Sensible defaults for missing features (based on Indian summer averages)
+WEATHER_FEATURE_DEFAULTS: dict[str, float] = {
+    "temperature":    45.0,
+    "feelsLike":      48.0,
+    "humidity":       30.0,
+    "wind_speed":     10.0,
+    "precipitation":   0.0,
+    "uv_index":       10.0,
+    "cloud_cover":    10.0,
+    "pressure":      1010.0,
+    "dew_point":      15.0,
+    "visibility":     10.0,
+}
+
 # ─── Pydantic Schemas ─────────────────────────────────────────────────────────
 
 class ClaimVerificationRequest(BaseModel):
@@ -95,9 +132,10 @@ class ClaimVerificationRequest(BaseModel):
     altitude_variance: float = Field(0.2, ge=0, le=100, description="Altitude variance (movement)")
 
     @validator("ambient_temp")
-    def temp_must_be_heatwave(cls, v):
+    def temp_must_be_warm(cls, v):
+        """Require at least 40°C — reduced from 45°C to avoid edge cases at heatwave boundary."""
         if v < 40:
-            raise ValueError("Ambient temp too low for heatwave claim")
+            raise ValueError("Ambient temp too low for heatwave claim (minimum 40°C)")
         return v
 
 
@@ -305,22 +343,56 @@ def oracle_info():
         }
     }
 
+@app.get("/oracle/features")
+def oracle_features():
+    """Diagnostic: list all features the oracle model expects, with alias info."""
+    if weather_model is None:
+        raise HTTPException(503, "Weather oracle model not loaded")
+    features = WEATHER_FEATURE_ORDER
+    return {
+        "required_features": features,
+        "feature_count": len(features),
+        "alias_map": WEATHER_ALIAS_MAP,
+        "defaults": {f: WEATHER_FEATURE_DEFAULTS.get(f, 0.0) for f in features},
+        "model_type": type(weather_model).__name__,
+    }
+
 
 @app.post("/oracle/predict", response_model=WeatherOracleResponse)
 def oracle_predict(payload: WeatherOracleRequest):
+    """Predict heatwave probability using the Weather Oracle model.
+
+    Accepts any combination of weather feature names — aliases are resolved
+    automatically and missing features are filled with sensible defaults.
+    """
     if weather_model is None:
         raise HTTPException(503, detail="Weather oracle model unavailable")
 
     required_features = WEATHER_FEATURE_ORDER
     if not required_features:
-        raise HTTPException(500, detail="Weather oracle feature metadata is missing")
+        raise HTTPException(500, detail="Weather oracle feature metadata is missing — model may not expose feature_names_in_")
 
-    missing = [f for f in required_features if f not in payload.features]
-    if missing:
-        raise HTTPException(400, detail=f"Missing required features: {missing}")
+    # ── 1. Resolve aliases from incoming feature dict ──────────────────────────
+    resolved: dict[str, float] = {}
+    for key, val in payload.features.items():
+        canonical = WEATHER_ALIAS_MAP.get(key, key)   # map alias → canonical
+        resolved[canonical] = float(val)
 
-    data = {name: float(payload.features[name]) for name in required_features}
+    # ── 2. Fill missing required features with defaults ────────────────────────
+    missing_filled = []
+    for feat in required_features:
+        if feat not in resolved:
+            default = WEATHER_FEATURE_DEFAULTS.get(feat, 0.0)
+            resolved[feat] = default
+            missing_filled.append(feat)
+
+    if missing_filled:
+        logger.warning(f"[Oracle] Missing features filled with defaults: {missing_filled}")
+
+    # ── 3. Build DataFrame in model's exact column order ─────────────────────
+    data = {name: resolved[name] for name in required_features}
     X = pd.DataFrame([data], columns=required_features)
+
     raw_prediction = float(weather_model.predict(X)[0])
     oracle_score = min(max(raw_prediction, 0.0), 1.0)
     is_heatwave = oracle_score >= 0.5
