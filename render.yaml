@@ -47,7 +47,7 @@ services:
         generateValue: true
       - key: JWT_EXPIRES_IN
         value: 7d
-      - key: WEATHERSTACK_API_KEY
+      - key: OPENWEATHER_API_KEY
         sync: false
       - key: OPENAQ_BASE_URL
         value: https://api.openaq.org/v2
