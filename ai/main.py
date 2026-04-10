@@ -55,8 +55,16 @@ _MODEL_CACHE = {"fraud": None, "weather": None}
 def get_fraud_model():
     if _MODEL_CACHE["fraud"] is None:
         try:
-            _MODEL_CACHE["fraud"] = joblib.load(MODEL_PATH)
-            logger.info(f"✓ Fraud model loaded: {type(_MODEL_CACHE['fraud'])} (lazy)")
+            if MODEL_PATH.exists():
+                logger.info("Loading fraud model (mmap mode)...")
+                # Using mmap_mode='r' to read from disk instead of loading full 100MB into RAM at once
+                _MODEL_CACHE["fraud"] = joblib.load(MODEL_PATH, mmap_mode='r')
+                logger.info(f"✓ Fraud model ready: {type(_MODEL_CACHE['fraud'])}")
+            else:
+                logger.warning(f"⚠️ Fraud model file missing: {MODEL_PATH}")
+        except MemoryError:
+            logger.error("❌ CRITICAL: Out of Memory while loading fraud model!")
+            _MODEL_CACHE["fraud"] = None
         except Exception as e:
             logger.error(f"✗ Failed to load fraud model: {e}")
     return _MODEL_CACHE["fraud"]
@@ -65,13 +73,26 @@ def get_weather_model():
     if _MODEL_CACHE["weather"] is None:
         try:
             if WEATHER_MODEL_PATH.exists():
-                _MODEL_CACHE["weather"] = joblib.load(WEATHER_MODEL_PATH)
-                logger.info(f"✓ Weather oracle model loaded: {type(_MODEL_CACHE['weather'])} (lazy)")
+                logger.info("Loading weather oracle (mmap mode)...")
+                # Memory efficient loading for Render free tier (512MB RAM)
+                _MODEL_CACHE["weather"] = joblib.load(WEATHER_MODEL_PATH, mmap_mode='r')
+                logger.info(f"✓ Weather oracle ready: {type(_MODEL_CACHE['weather'])}")
             else:
-                logger.warning(f"⚠️ Weather oracle file missing at {WEATHER_MODEL_PATH}")
+                logger.warning(f"⚠️ Weather oracle file missing: {WEATHER_MODEL_PATH}")
+        except MemoryError:
+            logger.error("❌ CRITICAL: Out of Memory while loading weather model!")
+            _MODEL_CACHE["weather"] = None
         except Exception as e:
             logger.error(f"✗ Failed to load weather oracle model: {e}")
     return _MODEL_CACHE["weather"]
+
+@app.on_event("startup")
+def preload_models_background():
+    """Start loading models in a separate thread so startup is instant but RAM is warmed up."""
+    import threading
+    logger.info("Starting background model preloading...")
+    threading.Thread(target=get_fraud_model, daemon=True).start()
+    threading.Thread(target=get_weather_model, daemon=True).start()
 
 def get_weather_feature_order():
     wm = get_weather_model()
