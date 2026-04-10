@@ -21,7 +21,9 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (res) => res,
   (err) => {
-    if (err.response?.status === 401) {
+    // Only redirect to login if we get a 401 and we aren't already on an auth page
+    const isAuthPath = window.location.pathname.includes('/login') || window.location.pathname.includes('/register');
+    if (err.response?.status === 401 && !isAuthPath) {
       localStorage.removeItem('kfw_token');
       localStorage.removeItem('kfw_user');
       window.location.href = '/login';
