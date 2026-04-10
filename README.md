@@ -54,9 +54,16 @@ Update these env values when hosting:
 - `CLIENT_URL`
 - `AI_SERVICE_URL`
 - `MONGODB_URI`
-- `WEATHERSTACK_API_KEY`
 - `JWT_SECRET`
+- `OPENWEATHER_API_KEY` (optional)
+- `GEMINI_API_KEY` (optional, for chatbot)
 - `TWILIO_*` if using real OTP SMS
+
+Weather and location notes:
+
+- Weather works without any weather API key because the backend falls back to Open-Meteo.
+- `OPENWEATHER_API_KEY` is optional and improves weather coverage.
+- Live location does not need a separate key. The app uses browser/native geolocation and BigDataCloud reverse geocoding.
 
 ## Android APK
 
