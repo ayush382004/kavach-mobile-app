@@ -41,7 +41,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ─── Load Models ──────────────────────────────────────────────────────────────
+# ─── Lazy Load Models ────────────────────────────────────────────────────────
 BASE_DIR = Path(__file__).parent
 MODEL_PATH = BASE_DIR / "sentry_AI_fraud_.joblib"
 WEATHER_MODEL_CANDIDATES = [
@@ -50,22 +50,32 @@ WEATHER_MODEL_CANDIDATES = [
 ]
 WEATHER_MODEL_PATH = next((path for path in WEATHER_MODEL_CANDIDATES if path.exists()), WEATHER_MODEL_CANDIDATES[0])
 
-try:
-    model = joblib.load(MODEL_PATH)
-    logger.info(f"✓ Fraud model loaded: {type(model).__name__}")
-    logger.info(f"  Features: {list(model.feature_names_in_)}")
-    logger.info(f"  Classes:  {model.classes_}  (0=legit, 1=fraud)")
-except Exception as e:
-    logger.error(f"✗ Failed to load fraud model: {e}")
-    model = None
+_MODEL_CACHE = {"fraud": None, "weather": None}
 
-try:
-    weather_model = joblib.load(WEATHER_MODEL_PATH)
-    logger.info(f"✓ Weather oracle model loaded: {type(weather_model).__name__}")
-    logger.info(f"  Features: {list(getattr(weather_model, 'feature_names_in_', []))}")
-except Exception as e:
-    logger.error(f"✗ Failed to load weather oracle model: {e}")
-    weather_model = None
+def get_fraud_model():
+    if _MODEL_CACHE["fraud"] is None:
+        try:
+            _MODEL_CACHE["fraud"] = joblib.load(MODEL_PATH)
+            logger.info(f"✓ Fraud model loaded: {type(_MODEL_CACHE['fraud'])} (lazy)")
+        except Exception as e:
+            logger.error(f"✗ Failed to load fraud model: {e}")
+    return _MODEL_CACHE["fraud"]
+
+def get_weather_model():
+    if _MODEL_CACHE["weather"] is None:
+        try:
+            if WEATHER_MODEL_PATH.exists():
+                _MODEL_CACHE["weather"] = joblib.load(WEATHER_MODEL_PATH)
+                logger.info(f"✓ Weather oracle model loaded: {type(_MODEL_CACHE['weather'])} (lazy)")
+            else:
+                logger.warning(f"⚠️ Weather oracle file missing at {WEATHER_MODEL_PATH}")
+        except Exception as e:
+            logger.error(f"✗ Failed to load weather oracle model: {e}")
+    return _MODEL_CACHE["weather"]
+
+def get_weather_feature_order():
+    wm = get_weather_model()
+    return list(getattr(wm, 'feature_names_in_', [])) if wm is not None else []
 
 FEATURE_ORDER = [
     "ambient_temp",
@@ -77,7 +87,6 @@ FEATURE_ORDER = [
     "brightness_level",
     "altitude_variance",
 ]
-WEATHER_FEATURE_ORDER = list(getattr(weather_model, 'feature_names_in_', [])) if weather_model is not None else []
 
 # ─── Weather Oracle Feature Aliases & Defaults ──────────────────────────────────
 # Maps alternate feature names sent by server → the model's actual feature names.
@@ -184,8 +193,8 @@ class WeatherOracleResponse(BaseModel):
 def root():
     return {
         "service": "KavachForWork AI Fraud Detection",
-        "fraud_model_loaded": model is not None,
-        "weather_model_loaded": weather_model is not None,
+        "fraud_model_loaded": _MODEL_CACHE["fraud"] is not None,
+        "weather_model_loaded": _MODEL_CACHE["weather"] is not None,
         "version": "1.0.0",
     }
 
@@ -193,8 +202,8 @@ def root():
 def health():
     return {
         "status": "ok",
-        "fraud_model_ready": model is not None,
-        "weather_model_ready": weather_model is not None,
+        "fraud_model_ready": MODEL_PATH.exists(),
+        "weather_model_ready": WEATHER_MODEL_PATH.exists(),
     }
 
 
@@ -213,6 +222,7 @@ def verify_claim(payload: ClaimVerificationRequest):
       - Low brightness: screen dim → indoors
       - Low battery drain: stationary indoors device
     """
+    model = get_fraud_model()
     if model is None:
         raise HTTPException(503, detail="AI model not available. Using fallback scoring.")
 
@@ -312,6 +322,7 @@ def verify_batch(claims: list[ClaimVerificationRequest]):
 
 @app.get("/model-info")
 def model_info():
+    model = get_fraud_model()
     if model is None:
         raise HTTPException(503, "Fraud model not loaded")
     return {
@@ -332,6 +343,7 @@ def model_info():
 
 @app.get("/oracle/info")
 def oracle_info():
+    weather_model = get_weather_model()
     if weather_model is None:
         return {
             "weather_model": {
@@ -353,9 +365,10 @@ def oracle_info():
 @app.get("/oracle/features")
 def oracle_features():
     """Diagnostic: list all features the oracle model expects, with alias info."""
+    weather_model = get_weather_model()
     if weather_model is None:
         raise HTTPException(503, "Weather oracle model not loaded")
-    features = WEATHER_FEATURE_ORDER
+    features = get_weather_feature_order()
     return {
         "required_features": features,
         "feature_count": len(features),
@@ -372,7 +385,8 @@ def oracle_predict(payload: WeatherOracleRequest):
     Accepts any combination of weather feature names — aliases are resolved
     automatically and missing features are filled with sensible defaults.
     """
-    required_features = WEATHER_FEATURE_ORDER or ["temperature_c", "humidity", "wind_speed_ms", "precipitation_mm"]
+    weather_model = get_weather_model()
+    required_features = get_weather_feature_order() or ["temperature_c", "humidity", "wind_speed_ms", "precipitation_mm"]
 
     # ── 1. Resolve aliases from incoming feature dict ──────────────────────────
     resolved: dict[str, float] = {}
