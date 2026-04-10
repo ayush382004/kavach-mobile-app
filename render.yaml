@@ -51,7 +51,7 @@ services:
         sync: false
       - key: OPENAQ_BASE_URL
         value: https://api.openaq.org/v2
-      - key: ANTHROPIC_API_KEY
+      - key: GEMINI_API_KEY
         sync: false
       - key: RAZORPAY_KEY_ID
         sync: false

@@ -109,7 +109,9 @@ export default function TermsModal({
             <div className={`mt-2 text-sm ${locationMatched ? 'text-green-700' : 'text-amber-700'}`}>
               {locationMatched
                 ? 'Live location matches the selected state.'
-                : 'We need one successful live location and device sync before acceptance.'}
+                : syncReady
+                  ? 'Live location synced. You can continue with account creation.'
+                  : 'Live location sync is recommended, but you can continue without it.'}
             </div>
           </div>
 
@@ -121,6 +123,9 @@ export default function TermsModal({
         </div>
 
         <div className="flex flex-col gap-3 border-t border-stone-100 px-6 py-4 sm:flex-row sm:justify-end">
+          <div className="text-xs text-gray-500 sm:mr-auto sm:self-center">
+            Claims still require live location and sensor verification.
+          </div>
           <button
             type="button"
             onClick={onRunSync}
@@ -135,7 +140,7 @@ export default function TermsModal({
             disabled={syncing}
             className="btn-primary disabled:cursor-not-allowed disabled:opacity-60"
           >
-            Accept and continue
+            {syncReady ? 'Accept and create account' : 'Accept and continue'}
           </button>
         </div>
       </div>

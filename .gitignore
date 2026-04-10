@@ -22,3 +22,4 @@ mobile/android/.gradle/
 mobile/android/app/build/
 mobile/android/local.properties
 mobile/android/app/src/main/assets/public/
+*.apk

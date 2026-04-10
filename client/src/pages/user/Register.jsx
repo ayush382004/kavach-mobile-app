@@ -62,9 +62,9 @@ export default function Register() {
     try {
       const coords = await getCurrentCoordinates();
       const resolved = await reverseGeocodeIndia(coords.latitude, coords.longitude);
-      const supportedState = canonicalizeState(resolved.state);
+      const supportedState = canonicalizeState(resolved.state) || canonicalizeState(form.state);
       const nextState = INDIAN_STATES.includes(supportedState) ? supportedState : form.state;
-      const nextCity = resolved.city || form.city;
+      const nextCity = (resolved.city || form.city || '').trim();
 
       setForm((current) => ({ ...current, state: nextState, city: nextCity }));
 
@@ -72,11 +72,11 @@ export default function Register() {
         latitude: coords.latitude,
         longitude: coords.longitude,
         accuracy: coords.accuracy,
-        detectedCity: resolved.city || nextCity,
+        detectedCity: nextCity,
         detectedState: supportedState,
-        provider: 'browser_geolocation',
+        provider: resolved.city && resolved.state ? 'browser_geolocation' : 'browser_geolocation_manual_fallback',
         verifiedAt: new Date().toISOString(),
-        formatted: resolved.formatted || [resolved.city, supportedState].filter(Boolean).join(', '),
+        formatted: resolved.formatted || [nextCity, supportedState].filter(Boolean).join(', '),
       });
 
       await collectSensorData({ requireLiveLocation: true });
@@ -246,7 +246,7 @@ export default function Register() {
             </div>
 
             <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', textAlign: 'center' }}>
-              Terms & live location verification required on next step.
+              Terms are required. Live location sync is recommended before you continue.
             </div>
 
             <button type="submit" disabled={loading || form.phone.length < 10} className="btn-primary" style={{ marginTop: 8, width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>

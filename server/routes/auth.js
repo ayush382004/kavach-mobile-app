@@ -28,11 +28,28 @@ router.post(
     body('state').trim().notEmpty().withMessage('State is required'),
     body('city').trim().notEmpty().withMessage('City is required'),
     body('termsAccepted').custom((value) => value === true).withMessage('You must accept the terms and conditions.'),
-    body('locationVerification.latitude').isFloat().withMessage('Live location latitude is required'),
-    body('locationVerification.longitude').isFloat().withMessage('Live location longitude is required'),
-    body('locationVerification.detectedState').trim().notEmpty().withMessage('Detected state is required'),
-    body('locationVerification.detectedCity').trim().notEmpty().withMessage('Detected city is required'),
-    body('locationVerification.verifiedAt').notEmpty().withMessage('Location verification timestamp is required'),
+    body('locationVerification.latitude')
+      .optional({ values: 'falsy' })
+      .isFloat()
+      .withMessage('Valid live location latitude required'),
+    body('locationVerification.longitude')
+      .optional({ values: 'falsy' })
+      .isFloat()
+      .withMessage('Valid live location longitude required'),
+    body('locationVerification.detectedState')
+      .optional({ values: 'falsy' })
+      .trim()
+      .notEmpty()
+      .withMessage('Detected state is required'),
+    body('locationVerification.detectedCity')
+      .optional({ values: 'falsy' })
+      .trim()
+      .notEmpty()
+      .withMessage('Detected city is required'),
+    body('locationVerification.verifiedAt')
+      .optional({ values: 'falsy' })
+      .isISO8601()
+      .withMessage('Valid location verification timestamp required'),
   ],
   async (req, res) => {
     try {
@@ -54,11 +71,16 @@ router.post(
       } = req.body;
 
       const selectedState = canonicalizeState(state || 'Rajasthan');
-      const detectedState = canonicalizeState(locationVerification?.detectedState || '');
+      const providedDetectedState = canonicalizeState(locationVerification?.detectedState || '');
+      const detectedState = providedDetectedState || selectedState;
+      const detectedCity = (locationVerification?.detectedCity || city || '').trim();
+      const hasLiveLocation =
+        Number.isFinite(Number(locationVerification?.latitude)) &&
+        Number.isFinite(Number(locationVerification?.longitude));
       const pricing = resolvePricing(selectedState, city);
 
       // Log mismatch as warning but don't block — GPS can be imprecise on mobile/webview
-      if (selectedState !== detectedState && detectedState) {
+      if (selectedState !== providedDetectedState && providedDetectedState) {
         console.warn(`[Auth] State mismatch: selected=${selectedState}, detected=${detectedState}`);
       }
 
@@ -70,7 +92,10 @@ router.post(
         return res.status(409).json({ error: `An account with this ${field} already exists. Please login instead.` });
       }
 
-      const verifiedAt = new Date(locationVerification.verifiedAt);
+      const verifiedAtCandidate = locationVerification?.verifiedAt
+        ? new Date(locationVerification.verifiedAt)
+        : new Date();
+      const verifiedAt = Number.isNaN(verifiedAtCandidate.getTime()) ? new Date() : verifiedAtCandidate;
 
       const user = await User.create({
         name,
@@ -88,17 +113,19 @@ router.post(
         wallet: { balance: 100 },
         termsAccepted: !!termsAccepted,
         termsAcceptedAt: verifiedAt,
-        lastLocation: {
-          lat: locationVerification.latitude,
-          lng: locationVerification.longitude,
-          city: locationVerification.detectedCity,
-          state: detectedState,
-          accuracy: locationVerification.accuracy,
-          provider: locationVerification.provider || 'browser_geolocation',
-          verifiedAt,
-          source: 'registration_location_api',
-          updatedAt: verifiedAt,
-        },
+        ...(hasLiveLocation && {
+          lastLocation: {
+            lat: Number(locationVerification.latitude),
+            lng: Number(locationVerification.longitude),
+            city: detectedCity,
+            state: detectedState,
+            accuracy: locationVerification.accuracy,
+            provider: locationVerification.provider || 'browser_geolocation',
+            verifiedAt,
+            source: 'registration_location_api',
+            updatedAt: verifiedAt,
+          },
+        }),
       });
 
       const token = generateToken(user._id);
