@@ -213,6 +213,7 @@ class WeatherOracleResponse(BaseModel):
 # ─── Health Check ─────────────────────────────────────────────────────────────
 
 @app.get("/")
+@app.head("/")
 def root():
     return {
         "service": "KavachForWork AI Fraud Detection",
