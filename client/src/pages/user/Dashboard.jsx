@@ -312,13 +312,11 @@ export default function Dashboard() {
               No transactions yet
             </div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <div className="flex flex-col gap-1.5">
               {transactions.map(tx => <TxRow key={tx._id} tx={tx} />)}
             </div>
           )}
         </div>
-
-      </div>{/* end scroll */}
       </div>
 
       {/* ── FAB ── */}
@@ -329,27 +327,16 @@ export default function Dashboard() {
               { to: '/claim',   label: '📋 File Claim',  color: '#a78bfa', action: null },
               { to: '/wallet',  label: '💰 Wallet',       color: '#38bdf8', action: null },
               { to: '/chatbot', label: '💬 Help',          color: '#f97316', action: null },
-              { to: '#', label: '🚪 Logout', color: '#ef4444', action: () => { logout(); } }
+              { to: '#', label: '🚪 Logout', color: '#ef4444', action: () => logout() }
             ].map((item, idx) => (
               <Link
                 key={idx}
                 to={item.to}
                 onClick={(e) => {
                   setFabOpen(false);
-                  if (item.action) {
-                    e.preventDefault();
-                    item.action();
-                  }
+                  if (item.action) { e.preventDefault(); item.action(); }
                 }}
-                style={{
-                  background: 'rgba(255,255,255,0.10)',
-                  backdropFilter: 'blur(16px)',
-                  border: '1px solid rgba(255,255,255,0.15)',
-                  borderRadius: 28, padding: '10px 18px',
-                  color: '#fff', fontWeight: 700, fontSize: 14,
-                  textDecoration: 'none', whiteSpace: 'nowrap',
-                  boxShadow: `0 0 20px ${item.color}44`,
-                }}
+                className="glass-strong px-5 py-2 rounded-full text-white font-bold text-sm no-underline shadow-lg"
               >
                 {item.label}
               </Link>
@@ -369,14 +356,13 @@ export default function Dashboard() {
             transition: 'all 0.3s ease',
             transform: fabOpen ? 'rotate(45deg)' : 'rotate(0)',
             cursor: 'pointer',
-            position: 'relative',
           }}
         >
           {fabOpen ? '✕' : '+'}
         </button>
-      </div>
+      </div> {/* end FAB */}
+      </div> {/* end page-content */}
 
-      {/* Bottom Nav */}
       <BottomNav />
 
       <style>{`

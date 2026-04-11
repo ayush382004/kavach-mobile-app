@@ -128,89 +128,57 @@ export default function Home() {
       />
 
       <div className="page-content">
-        <div style={{ padding: '24px 20px 10px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        {/* Header */}
+        <div className="px-5 pt-8 pb-3 flex items-center justify-between">
           <div>
-            <h1 style={{ fontSize: 24, fontWeight: 800, color: '#fff', fontFamily: "'Sora',sans-serif" }}>
-              Kavach<span style={{ color: '#f97316' }}>ForWork</span>
+            <h1 className="text-2xl font-black text-white tracking-tight">
+              Kavach<span className="text-orange-500">ForWork</span>
             </h1>
-            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginTop: 2 }}>
+            <p className="text-[10px] uppercase font-bold tracking-[0.1em] text-white/40 mt-0.5">
               Climate Protection for Gig Workers
-            </div>
+            </p>
           </div>
-          <div
-            style={{
-              width: 44,
-              height: 44,
-              borderRadius: '50%',
-              background: 'rgba(249,115,22,0.1)',
-              border: '2px solid rgba(249,115,22,0.3)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              overflow: 'hidden',
-            }}
-          >
-            <img src="/logo.png" alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          <div className="w-11 h-11 rounded-full bg-orange-500/10 border-2 border-orange-500/30 flex items-center justify-center overflow-hidden shadow-[0_0_15px_rgba(249,115,22,0.2)]">
+            <img src="/logo.png" alt="" className="w-full h-full object-cover" />
           </div>
         </div>
 
-        <div style={{ padding: '20px' }}>
-          <div className="glass fade-up" style={{ padding: '30px 24px', textAlign: 'center', marginBottom: 20 }}>
-            <h2 style={{ fontSize: 32, fontWeight: 900, color: '#fff', fontFamily: "'Sora',sans-serif", lineHeight: 1.2 }}>
-              See the heat.
-              <br />
-              <span style={{ color: '#f97316' }}>Stay covered.</span>
+        <div className="px-5 py-4">
+          {/* Hero Section */}
+          <div className="glass-strong fade-up p-8 text-center mb-5 relative overflow-hidden">
+            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-orange-500/50 to-transparent"></div>
+            <h2 className="text-3xl font-black text-white leading-tight mb-3">
+              See the heat.<br />
+              <span className="text-orange-500">Stay covered.</span>
             </h2>
-            <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', marginTop: 12, marginBottom: 24 }}>
-              Hardware-backed climate protection for delivery riders and field workers.
+            <p className="text-xs text-white/50 mb-8 max-w-[240px] mx-auto leading-relaxed">
+              AI-powered climate insurance for delivery riders and outdoor field workers.
             </p>
             {user ? (
-              <Link to="/dashboard" className="btn-primary" style={{ display: 'block', textDecoration: 'none' }}>
+              <Link to="/dashboard" className="btn-primary inline-block w-full no-underline">
                 Open Dashboard
               </Link>
             ) : (
-              <div style={{ display: 'flex', gap: 12 }}>
-                <Link to="/register" className="btn-primary" style={{ flex: 1, textDecoration: 'none' }}>
-                  Join Kavach
-                </Link>
-                <Link to="/login" className="btn-secondary" style={{ flex: 1, textDecoration: 'none' }}>
-                  Sign In
-                </Link>
+              <div className="flex gap-3">
+                <Link to="/register" className="btn-primary flex-1 no-underline">Join Kavach</Link>
+                <Link to="/login" className="btn-secondary flex-1 no-underline">Sign In</Link>
               </div>
             )}
           </div>
 
-          <div className="glass fade-up" style={{ padding: 20, marginBottom: 20, animationDelay: '0.1s' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, marginBottom: 16 }}>
-              <div style={{ fontSize: 14, fontWeight: 800, color: '#fff' }}>Live Area Check</div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span
-                  style={{
-                    fontSize: 10,
-                    background: 'rgba(249,115,22,0.15)',
-                    color: '#f97316',
-                    padding: '4px 8px',
-                    borderRadius: 10,
-                    fontWeight: 700,
-                  }}
-                >
+          {/* Live Area Check */}
+          <div className="glass fade-up p-5 mb-5" style={{ animationDelay: '0.1s' }}>
+            <div className="flex justify-between items-center mb-5">
+              <span className="text-xs font-black text-white uppercase tracking-wider">Live Area Check</span>
+              <div className="flex items-center gap-2">
+                <span className="px-2.5 py-1 rounded-full bg-orange-500/15 text-orange-500 text-[10px] font-bold">
                   {live.refreshing ? 'Scanning...' : 'Online'}
                 </span>
                 <button
                   type="button"
                   onClick={() => loadLiveSnapshot(true).catch(() => { })}
                   disabled={live.refreshing}
-                  style={{
-                    border: '1px solid rgba(255,255,255,0.12)',
-                    background: 'rgba(255,255,255,0.04)',
-                    color: '#fff',
-                    borderRadius: 10,
-                    padding: '6px 10px',
-                    fontSize: 10,
-                    fontWeight: 700,
-                    cursor: live.refreshing ? 'default' : 'pointer',
-                    opacity: live.refreshing ? 0.6 : 1,
-                  }}
+                  className="bg-white/5 border border-white/10 text-white rounded-lg px-2.5 py-1 text-[10px] font-bold active:bg-white/10 transition-colors"
                 >
                   Retry
                 </button>
@@ -218,43 +186,45 @@ export default function Home() {
             </div>
 
             {live.loading ? (
-              <div className="heat-shimmer" style={{ height: 60, borderRadius: 12 }} />
+              <div className="heat-shimmer h-[60px]" />
             ) : (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 24, fontWeight: 800, color: '#fff' }}>{live.locationLabel}</div>
-                  <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginTop: 2 }}>
-                    {getWeatherEmoji(live.weather?.condition, localHour)} {live.weather?.condition || 'Waiting for signal'}
+              <div className="flex items-center gap-4">
+                <div className="flex-1 min-w-0">
+                  <div className="text-xl font-extrabold text-white truncate">{live.locationLabel}</div>
+                  <div className="text-xs text-white/40 mt-1 flex items-center gap-1.5">
+                    <span className="text-lg">{getWeatherEmoji(live.weather?.condition, localHour)}</span>
+                    {live.weather?.condition || 'Waiting for signal'}
                   </div>
                 </div>
-                <div style={{ fontSize: 36, fontWeight: 900, color: '#f97316', whiteSpace: 'nowrap' }}>
+                <div className="text-4xl font-black text-orange-500">
                   {Number.isFinite(Number(live.weather?.temperature)) ? `${live.weather.temperature}°` : '--°'}
                 </div>
               </div>
             )}
-
-            {live.error && <div style={{ marginTop: 12, fontSize: 11, color: '#fda4af' }}>{live.error}</div>}
+            {live.error && <div className="mt-3 text-[10px] text-red-400 font-medium">{live.error}</div>}
           </div>
 
-          <div className="glass fade-up" style={{ padding: 18, marginBottom: 20, animationDelay: '0.15s' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 11, letterSpacing: '0.08em', color: 'rgba(255,255,255,0.4)' }}>
-                  {live.weather && Number.isFinite(live.weather.temperature) && live.weather.temperature >= 45 ? 'HEATWAVE PAYOUT' : 'MAX POSSIBLE PAYOUT'}
+          {/* Payout Stats */}
+          <div className="glass fade-up p-5 mb-5" style={{ animationDelay: '0.15s' }}>
+            <div className="flex justify-between gap-4">
+              <div className="flex-1">
+                <div className="text-[10px] font-bold tracking-[0.1em] text-white/40 uppercase">
+                  {live.weather && Number.isFinite(live.weather.temperature) && live.weather.temperature >= 45 ? 'Instant Payout' : 'Max Coverage'}
                 </div>
-                <div style={{ fontSize: 24, fontWeight: 900, color: live.weather?.payoutAmount > 0 ? '#4ade80' : '#fff', marginTop: 6 }}>
+                <div className={`text-2xl font-black mt-1 ${live.weather?.payoutAmount > 0 ? 'text-green-400' : 'text-white'}`}>
                   {live.loading ? '...' : `₹${live.weather?.payoutAmount ?? pricing.maxPayout}`}
                 </div>
-                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', marginTop: 4 }}>
-                  {live.weather?.temperature >= 45 ? `🔥 ${live.weather.temperature}°C — Heatwave active!` : live.weather?.temperature ? `${live.weather.temperature}°C — No heatwave yet` : pricing.category}
+                <div className="text-[10px] text-white/40 mt-1.5 font-medium">
+                  {live.weather?.temperature >= 45 ? `🔥 ${live.weather.temperature}°C — Threshold met!` : live.weather?.temperature ? `${live.weather.temperature}°C — Below threshold` : pricing.category}
                 </div>
               </div>
-              <div style={{ flex: 1, textAlign: 'right' }}>
-                <div style={{ fontSize: 11, letterSpacing: '0.08em', color: 'rgba(255,255,255,0.4)' }}>WEEKLY PREMIUM</div>
-                <div style={{ fontSize: 24, fontWeight: 900, color: '#f97316', marginTop: 6 }}>
+              <div className="w-px bg-white/10"></div>
+              <div className="flex-1 text-right">
+                <div className="text-[10px] font-bold tracking-[0.1em] text-white/40 uppercase">Weekly Premium</div>
+                <div className="text-2xl font-black text-orange-500 mt-1">
                   ₹{live.weather?.pricing?.weeklyPremium ?? pricing.weeklyPremium}
                 </div>
-                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', marginTop: 4 }}>{pricing.label}</div>
+                <div className="text-[10px] text-white/40 mt-1.5 font-medium">{pricing.label}</div>
               </div>
             </div>
           </div>
