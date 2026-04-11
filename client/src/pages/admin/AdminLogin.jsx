@@ -1,7 +1,4 @@
-/**
- * Admin Login — KavachForWork
- */
-import { useState } from 'react';
+import { useLayoutEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { authAPI } from '../../utils/api.js';
 import { useAuth } from '../../hooks/useAuth.jsx';
@@ -12,6 +9,12 @@ export default function AdminLogin() {
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
+
+  // Enable admin scrolling mode before paint
+  useLayoutEffect(() => {
+    document.documentElement.classList.add('admin-mode');
+    return () => document.documentElement.classList.remove('admin-mode');
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
