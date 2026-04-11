@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useLayoutEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { io } from 'socket.io-client';
 import {
@@ -50,8 +50,8 @@ export default function AdminDashboard() {
   const [aiStatus, setAiStatus] = useState(null);
   const [cacheStats, setCacheStats] = useState(null);
 
-  // Enable admin scrolling mode
-  useEffect(() => {
+  // Enable admin scrolling mode before paint
+  useLayoutEffect(() => {
     document.documentElement.classList.add('admin-mode');
     return () => document.documentElement.classList.remove('admin-mode');
   }, []);

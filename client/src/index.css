@@ -17,17 +17,15 @@
   }
   /* Admin mode: allow full-page scroll */
   html.admin-mode,
-  html.admin-mode body {
-    overflow: auto;
-    height: auto;
-    min-height: 100%;
+  html.admin-mode body,
+  html.admin-mode #root {
+    overflow: auto !important;
+    height: auto !important;
+    min-height: 100% !important;
   }
   html.admin-mode #root {
-    overflow: auto;
-    height: auto;
-    min-height: 100vh;
-    display: block;
-    background: #fafaf9;
+    display: block !important;
+    background: #fafaf9 !important;
   }
   body {
     font-family: 'Plus Jakarta Sans', sans-serif;
@@ -166,6 +164,8 @@
   width: 100%;
   background: #fafaf9;
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
   font-family: 'Inter', 'Outfit', sans-serif;
 }
 
