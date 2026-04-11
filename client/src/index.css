@@ -30,11 +30,6 @@
     display: block !important;
     background: #fafaf9 !important;
   }
-  body {
-    font-family: 'Plus Jakarta Sans', sans-serif;
-    color: #f0ede8;
-    -webkit-font-smoothing: antialiased;
-  }
   #root {
     width: 100%;
     height: 100%;
@@ -144,21 +139,34 @@
   }
 }
 
-/* ─── PHONE CHROME ───────────────────────────────────────────────────── */
+/* ─── PHONE CHROME (MOBILE SHELL) ────────────────────────────────────── */
 .phone-screen {
   width: 100%;
   max-width: 430px;
-  height: 100%;
-  height: 100dvh;
-  display: flex;
-  flex-direction: column;
+  /* Lock height to dynamic viewport \u2014 prevents addr bar jitter */
+  height: 100vh;
+  height: 100dvh; 
+  display: flex !important;
+  flex-direction: column !important;
   position: relative;
   background: linear-gradient(160deg, #0d0d14 0%, #131320 60%, #1a0d24 100%);
-  overflow-x: hidden;
+  overflow: hidden !important; 
+  margin: 0 auto;
+}
+
+.page-content {
+  flex: 1 1 auto;
+  min-height: 0; /* Critical: allows flex child to scroll */
   overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
+  -webkit-overflow-scrolling: touch; /* Fast scroll on iOS */
   overscroll-behavior-y: contain;
   scroll-behavior: smooth;
+  padding-bottom: 90px !important; /* Safety buffer for fixed BottomNav */
+}
+
+/* Ensure images and videos don't cause horizontal overflow */
+.page-content * {
+  max-width: 100%;
 }
 
 /* ─── ADMIN LAYOUT ───────────────────────────────────────────────────── */
@@ -201,12 +209,7 @@
   }
 }
 
-.page-content {
-  flex: 1 0 auto;
-  min-height: auto;
-  overflow: visible;
-  padding-bottom: 96px;
-}
+/* Removed legacy page-content styles — consolidated above */
 
 @media (max-width: 768px) {
   :root {
@@ -295,15 +298,22 @@
 /* ─── FAB ─────────────────────────────────────────────────────────────── */
 @keyframes fab-ping {
   0% { transform: scale(1); opacity: 0.8; }
-  100% { transform: scale(1.5); opacity: 0; }
+  100% { transform: scale(1.6); opacity: 0; }
 }
+
+.fab-ping {
+  position: relative;
+  isolation: isolate;
+}
+
 .fab-ping::after {
   content: '';
   position: absolute;
-  inset: 0;
+  inset: -4px;
   border-radius: 50%;
   background: var(--orange);
-  animation: fab-ping 2s ease-out infinite;
+  animation: fab-ping 2.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  z-index: -1;
   pointer-events: none;
 }
 
@@ -333,27 +343,31 @@
 
 /* ─── BOTTOM NAV ─────────────────────────────────────────────────────── */
 .bottom-nav {
-  position: fixed;
-  bottom: 0; left: 50%; transform: translateX(-50%);
-  width: 100%; max-width: 430px;
-  height: 72px;
-  background: rgba(13,13,20,0.92);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border-top: 1px solid rgba(255,255,255,0.08);
+  position: relative !important;
+  flex: 0 0 72px !important;
+  width: 100%;
+  background: rgba(13, 13, 20, 0.85);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
   display: flex;
   align-items: center;
-  z-index: 100;
+  z-index: 1000;
+  box-shadow: 0 -10px 40px rgba(0,0,0,0.5);
 }
 
-@media (orientation: landscape) and (max-height: 540px) {
-  .phone-screen,
+@media (max-width: 768px) {
   .bottom-nav {
-    max-width: 100%;
-  }
-
-  .page-content {
-    padding-bottom: 84px;
+    position: fixed !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    height: calc(72px + env(safe-area-inset-bottom, 0px)) !important;
+    border-radius: 20px 20px 0 0 !important;
+    border-top: 1px solid rgba(255, 255, 255, 0.12);
+    margin-bottom: 0 !important;
+    padding-bottom: env(safe-area-inset-bottom, 0) !important;
+    background: linear-gradient(to bottom, rgba(20, 20, 30, 0.95), rgba(13, 13, 20, 0.98));
   }
 }
 

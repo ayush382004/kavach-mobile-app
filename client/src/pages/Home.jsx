@@ -323,7 +323,7 @@ export default function Home() {
         )}
       </div>
 
-      {user && <BottomNav />}
+      <BottomNav />
     </div>
   );
 }

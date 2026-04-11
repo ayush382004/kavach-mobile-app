@@ -52,43 +52,54 @@ WEATHER_MODEL_CANDIDATES = [
 ]
 WEATHER_MODEL_PATH = next((path for path in WEATHER_MODEL_CANDIDATES if path.exists()), WEATHER_MODEL_CANDIDATES[0])
 
-_MODEL_CACHE = {"fraud": None, "weather": None}
+_MODEL_CACHE = {
+    "fraud": {"model": None, "error": None},
+    "weather": {"model": None, "error": None}
+}
 _model_lock = threading.Lock()
 
 def get_fraud_model():
     """Thread-safe lazy loading for the fraud detection model."""
-    if _MODEL_CACHE["fraud"] is None:
+    if _MODEL_CACHE["fraud"]["model"] is None:
         with _model_lock:
-            # Double-check pattern to prevent race during lock acquisition
-            if _MODEL_CACHE["fraud"] is None:
+            if _MODEL_CACHE["fraud"]["model"] is None:
                 try:
                     if MODEL_PATH.exists():
-                        _MODEL_CACHE["fraud"] = joblib.load(MODEL_PATH, mmap_mode='r')
+                        # Use mmap_mode to keep memory usage low
+                        _MODEL_CACHE["fraud"]["model"] = joblib.load(MODEL_PATH, mmap_mode='r')
+                        _MODEL_CACHE["fraud"]["error"] = None
                     else:
-                        logger.warning(f"Fraud model file missing: {MODEL_PATH}")
+                        _MODEL_CACHE["fraud"]["error"] = f"Model file missing: {MODEL_PATH}"
+                        logger.warning(_MODEL_CACHE["fraud"]["error"])
                 except MemoryError:
-                    logger.error("Out of Memory while loading fraud model!")
-                    _MODEL_CACHE["fraud"] = None
+                    _MODEL_CACHE["fraud"]["error"] = "Out of Memory (RAM limit reached)"
+                    logger.error(_MODEL_CACHE["fraud"]["error"])
                 except Exception as e:
+                    _MODEL_CACHE["fraud"]["error"] = str(e)
                     logger.error(f"Failed to load fraud model: {e}")
-    return _MODEL_CACHE["fraud"]
+    return _MODEL_CACHE["fraud"]["model"]
 
 def get_weather_model():
     """Thread-safe lazy loading for the weather oracle model."""
-    if _MODEL_CACHE["weather"] is None:
+    if _MODEL_CACHE["weather"]["model"] is None:
         with _model_lock:
-            if _MODEL_CACHE["weather"] is None:
+            if _MODEL_CACHE["weather"]["model"] is None:
                 try:
                     if WEATHER_MODEL_PATH.exists():
-                        _MODEL_CACHE["weather"] = joblib.load(WEATHER_MODEL_PATH, mmap_mode='r')
+                        # For large models (100MB+), mmap is essential on limited RAM (Render Free)
+                        _MODEL_CACHE["weather"]["model"] = joblib.load(WEATHER_MODEL_PATH, mmap_mode='r')
+                        _MODEL_CACHE["weather"]["error"] = None
                     else:
+                        _MODEL_CACHE["weather"]["error"] = "Weather model file missing"
                         logger.warning(f"Weather model file missing: {WEATHER_MODEL_PATH}")
                 except MemoryError:
-                    logger.error("Out of Memory while loading weather model!")
-                    _MODEL_CACHE["weather"] = None
+                    _MODEL_CACHE["weather"]["error"] = "Out of Memory (Large model vs 512MB RAM)"
+                    logger.error(_MODEL_CACHE["weather"]["error"])
                 except Exception as e:
+                    # Capture specific version mismatch or pickle errors
+                    _MODEL_CACHE["weather"]["error"] = str(e)
                     logger.error(f"Failed to load weather model: {e}")
-    return _MODEL_CACHE["weather"]
+    return _MODEL_CACHE["weather"]["model"]
 
 @app.on_event("startup")
 def preload_models_background():
@@ -217,9 +228,16 @@ class WeatherOracleResponse(BaseModel):
 def root():
     return {
         "service": "KavachForWork AI Fraud Detection",
-        "fraud_model_loaded": _MODEL_CACHE["fraud"] is not None,
-        "weather_model_loaded": _MODEL_CACHE["weather"] is not None,
+        "fraud_model": {
+            "loaded": _MODEL_CACHE["fraud"]["model"] is not None,
+            "error": _MODEL_CACHE["fraud"]["error"]
+        },
+        "weather_model": {
+            "loaded": _MODEL_CACHE["weather"]["model"] is not None,
+            "error": _MODEL_CACHE["weather"]["error"]
+        },
         "version": "1.0.0",
+        "memory_hint": "Render Free Tier (512MB RAM) requires models to be efficient."
     }
 
 @app.get("/health")
@@ -228,6 +246,8 @@ def health():
         "status": "ok",
         "fraud_model_ready": MODEL_PATH.exists(),
         "weather_model_ready": WEATHER_MODEL_PATH.exists(),
+        "fraud_error": _MODEL_CACHE["fraud"]["error"],
+        "weather_error": _MODEL_CACHE["weather"]["error"]
     }
 
 

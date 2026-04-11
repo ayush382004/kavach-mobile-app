@@ -110,7 +110,7 @@ export default function FAQs() {
 
   return (
     <div className="phone-screen">
-      <div className="page-content" style={{ paddingBottom: user ? 96 : 40 }}>
+      <div className="page-content">
         {/* Header */}
         <div style={{
           padding: '20px 20px 0',

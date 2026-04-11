@@ -322,7 +322,7 @@ export default function Dashboard() {
       </div>
 
       {/* ── FAB ── */}
-      <div style={{ position: 'fixed', bottom: 90, right: 20, zIndex: 110, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 10 }}>
+      <div style={{ position: 'absolute', bottom: 90, right: 20, zIndex: 110, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 10 }}>
         {fabOpen && (
           <div className="fade-up" style={{ display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'flex-end' }}>
             {[

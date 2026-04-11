@@ -45,67 +45,67 @@ export default function Chatbot() {
   ];
 
   return (
-    <div className="phone-screen" style={{ overflow: 'hidden' }}>
-      <div style={{ display: 'flex', flexDirection: 'column', height: '100%', paddingBottom: 72 }}>
-      <div style={{ padding: '24px 20px 10px', display: 'flex', alignItems: 'center', gap: 12 }}>
-        <div style={{
-            width: 44, height: 44, borderRadius: '50%',
-            background: 'rgba(249,115,22,0.1)', border: '2px solid rgba(249,115,22,0.3)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden'
-        }}>
-           <img src="/logo.png" alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-        </div>
-        <div>
-          <h1 style={{ fontSize: 20, fontWeight: 800, color: '#fff', fontFamily: "'Sora',sans-serif" }}>Kavach Assistant</h1>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
-            <span style={{ width: 6, height: 6, background: '#4ade80', borderRadius: '50%', boxShadow: '0 0 6px #4ade80', animation: 'pulse 2s infinite' }} />
-            <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>Online • AI Support</span>
+    <div className="phone-screen">
+      <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+        <div style={{ padding: '24px 20px 10px', display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{
+              width: 44, height: 44, borderRadius: '50%',
+              background: 'rgba(249,115,22,0.1)', border: '2px solid rgba(249,115,22,0.3)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden'
+          }}>
+             <img src="/logo.png" alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
           </div>
-        </div>
-      </div>
-
-      <div style={{ flex: 1, minHeight: 0, padding: '0 20px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 12 }}>
-        {messages.map((msg, i) => (
-          <div key={i} className="fade-up" style={{ display: 'flex', flexDirection: 'column', alignItems: msg.role === 'user' ? 'flex-end' : 'flex-start' }}>
-            <div style={{
-              maxWidth: '85%', padding: '12px 16px', borderRadius: 20,
-              fontSize: 14, lineHeight: 1.5, whiteSpace: 'pre-wrap',
-              background: msg.role === 'user' ? '#f97316' : 'rgba(255,255,255,0.08)',
-              color: '#fff',
-              borderBottomRightRadius: msg.role === 'user' ? 4 : 20,
-              borderBottomLeftRadius: msg.role !== 'user' ? 4 : 20,
-            }}>
-              {msg.content}
+          <div>
+            <h1 style={{ fontSize: 20, fontWeight: 800, color: '#fff', fontFamily: "'Sora',sans-serif" }}>Kavach Assistant</h1>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
+              <span style={{ width: 6, height: 6, background: '#4ade80', borderRadius: '50%', boxShadow: '0 0 6px #4ade80', animation: 'pulse 2s infinite' }} />
+              <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>Online • AI Support</span>
             </div>
           </div>
-        ))}
-        {loading && (
-          <div className="fade-up" style={{ alignSelf: 'flex-start', background: 'rgba(255,255,255,0.08)', padding: '12px 16px', borderRadius: 20, borderBottomLeftRadius: 4, display: 'flex', gap: 4 }}>
-            <span style={{ width: 6, height: 6, background: '#f97316', borderRadius: '50%', animation: 'bounce 1s infinite' }} />
-            <span style={{ width: 6, height: 6, background: '#f97316', borderRadius: '50%', animation: 'bounce 1s infinite 0.2s' }} />
-            <span style={{ width: 6, height: 6, background: '#f97316', borderRadius: '50%', animation: 'bounce 1s infinite 0.4s' }} />
-          </div>
-        )}
-        <div ref={bottomRef} />
-      </div>
-
-      <div style={{ padding: '12px 20px', background: 'linear-gradient(to top, #0d0d14 80%, transparent)' }}>
-        {messages.length <= 1 && (
-          <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 12, scrollbarWidth: 'none' }}>
-            {QUICK_QUESTIONS.map(q => (
-              <button key={q} onClick={() => sendMessage(q)} style={{ background: 'rgba(249,115,22,0.1)', border: '1px solid rgba(249,115,22,0.3)', color: '#fff', padding: '6px 12px', borderRadius: 20, fontSize: 11, fontWeight: 700, whiteSpace: 'nowrap' }}>
-                {q}
-              </button>
-            ))}
-          </div>
-        )}
-        <div style={{ display: 'flex', gap: 8 }}>
-          <input type="text" value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && sendMessage(input)} placeholder="Ask anything…" className="input-field" style={{ flex: 1, padding: '12px 16px', borderRadius: 24, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff' }} disabled={loading} />
-          <button onClick={() => sendMessage(input)} disabled={loading || !input.trim()} style={{ width: 44, height: 44, borderRadius: '50%', background: '#f97316', color: '#fff', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>
-            ↑
-          </button>
         </div>
-      </div>
+
+        <div style={{ flex: 1, minHeight: 0, padding: '0 20px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {messages.map((msg, i) => (
+            <div key={i} className="fade-up" style={{ display: 'flex', flexDirection: 'column', alignItems: msg.role === 'user' ? 'flex-end' : 'flex-start' }}>
+              <div style={{
+                maxWidth: '85%', padding: '12px 16px', borderRadius: 20,
+                fontSize: 14, lineHeight: 1.5, whiteSpace: 'pre-wrap',
+                background: msg.role === 'user' ? '#f97316' : 'rgba(255,255,255,0.08)',
+                color: '#fff',
+                borderBottomRightRadius: msg.role === 'user' ? 4 : 20,
+                borderBottomLeftRadius: msg.role !== 'user' ? 4 : 20,
+              }}>
+                {msg.content}
+              </div>
+            </div>
+          ))}
+          {loading && (
+            <div className="fade-up" style={{ alignSelf: 'flex-start', background: 'rgba(255,255,255,0.08)', padding: '12px 16px', borderRadius: 20, borderBottomLeftRadius: 4, display: 'flex', gap: 4 }}>
+              <span style={{ width: 6, height: 6, background: '#f97316', borderRadius: '50%', animation: 'bounce 1s infinite' }} />
+              <span style={{ width: 6, height: 6, background: '#f97316', borderRadius: '50%', animation: 'bounce 1s infinite 0.2s' }} />
+              <span style={{ width: 6, height: 6, background: '#f97316', borderRadius: '50%', animation: 'bounce 1s infinite 0.4s' }} />
+            </div>
+          )}
+          <div ref={bottomRef} />
+        </div>
+
+        <div style={{ padding: '12px 20px', background: 'linear-gradient(to top, #0d0d14 80%, transparent)' }}>
+          {messages.length <= 1 && (
+            <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 12, scrollbarWidth: 'none' }}>
+              {QUICK_QUESTIONS.map(q => (
+                <button key={q} onClick={() => sendMessage(q)} style={{ background: 'rgba(249,115,22,0.1)', border: '1px solid rgba(249,115,22,0.3)', color: '#fff', padding: '6px 12px', borderRadius: 20, fontSize: 11, fontWeight: 700, whiteSpace: 'nowrap' }}>
+                  {q}
+                </button>
+              ))}
+            </div>
+          )}
+          <div style={{ display: 'flex', gap: 8 }}>
+            <input type="text" value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && sendMessage(input)} placeholder="Ask anything…" className="input-field" style={{ flex: 1, padding: '12px 16px', borderRadius: 24, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff' }} disabled={loading} />
+            <button onClick={() => sendMessage(input)} disabled={loading || !input.trim()} style={{ width: 44, height: 44, borderRadius: '50%', background: '#f97316', color: '#fff', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>
+              ↑
+            </button>
+          </div>
+        </div>
       </div>
       <BottomNav />
     </div>

@@ -122,12 +122,67 @@ const limiter = rateLimit({
 });
 app.use('/api/', limiter);
 
+// ─── Root Route ──────────────────────────────────────────────────────────────
+app.get('/', (req, res) => {
+  res.send(`
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>KavachForWork API | Online</title>
+        <style>
+            body { 
+                margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+                background: #0f172a; color: white; display: flex; align-items: center; 
+                justify-content: center; min-height: 100vh; overflow: hidden;
+            }
+            .container { 
+                text-align: center; background: rgba(30, 41, 59, 0.7); 
+                padding: 3rem; border-radius: 20px; border: 1px solid rgba(251, 146, 60, 0.2);
+                backdrop-filter: blur(10px); box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+                max-width: 90%; width: 500px;
+            }
+            .logo { font-size: 4rem; margin-bottom: 1rem; }
+            h1 { color: #fb923c; margin: 0; font-size: 2rem; letter-spacing: -0.5px; }
+            p { color: #94a3b8; margin: 1rem 0 2rem; line-height: 1.6; }
+            .status-badge {
+                display: inline-flex; align-items: center; background: rgba(34, 197, 94, 0.1);
+                color: #4ade80; padding: 0.5rem 1rem; border-radius: 9999px;
+                font-size: 0.875rem; font-weight: 600; border: 1px solid rgba(34, 197, 94, 0.2);
+                margin-bottom: 2rem;
+            }
+            .status-dot { width: 8px; height: 8px; background: #4ade80; border-radius: 50%; margin-right: 8px; box-shadow: 0 0 10px #4ade80; }
+            .btn {
+                display: inline-block; background: #2563eb; color: white; 
+                padding: 0.75rem 1.5rem; border-radius: 10px; text-decoration: none;
+                font-weight: 600; transition: all 0.2s; border: none; cursor: pointer;
+            }
+            .btn:hover { background: #1d4ed8; transform: translateY(-2px); }
+            .footer { margin-top: 2rem; font-size: 0.75rem; color: #475569; }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="logo">🛡️</div>
+            <div class="status-badge"><span class="status-dot"></span>Online</div>
+            <h1>KavachForWork API</h1>
+            <p>The backend shield is active. All systems are monitoring extreme heat data and protecting workers across India.</p>
+            <a href="/health" class="btn">View API Health</a>
+            <div class="footer">Environment: ${process.env.NODE_ENV || 'production'} | Node: ${process.versions.node}</div>
+        </div>
+    </body>
+    </html>
+  `);
+});
+
 // ─── Health Check ─────────────────────────────────────────────────────────────
 app.get('/health', (req, res) => {
   res.json({
     status: 'ok',
     service: 'KavachForWork API',
     timestamp: new Date().toISOString(),
+    db: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected',
   });
 });
 
