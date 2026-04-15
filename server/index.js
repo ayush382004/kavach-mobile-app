@@ -181,8 +181,10 @@ if (process.env.NODE_ENV === 'production') {
     </html>
   `);
 });
+}
 
 // ─── Health Check ─────────────────────────────────────────────────────────────
+
 app.get('/health', (req, res) => {
   res.json({
     status: 'ok',
