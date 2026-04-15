@@ -124,7 +124,6 @@ const limiter = rateLimit({
 app.use('/api/', limiter);
 
 // ─── Render Ready Frontend Serving ──────────────────────────────────────────
-const path = require('path');
 if (process.env.NODE_ENV === 'production') {
   app.use(express.static(path.join(__dirname, '../client/dist')));
 } else {
