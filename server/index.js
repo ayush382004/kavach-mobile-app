@@ -123,11 +123,16 @@ const limiter = rateLimit({
 });
 app.use('/api/', limiter);
 
-// ─── Root Route ──────────────────────────────────────────────────────────────
-app.get('/', (req, res) => {
-  res.send(`
-    <!DOCTYPE html>
-    <html lang="en">
+// ─── Render Ready Frontend Serving ──────────────────────────────────────────
+const path = require('path');
+if (process.env.NODE_ENV === 'production') {
+  app.use(express.static(path.join(__dirname, '../client/dist')));
+} else {
+  // ─── Root Route (Development Fallback) ──────────────────────────────────────
+  app.get('/', (req, res) => {
+    res.send(`
+      <!DOCTYPE html>
+      <html lang="en">
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -227,6 +232,13 @@ app.get('/api/admin-setup', async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+
+// ─── Render Ready Frontend SPA Catch-All ────────────────────────────────────
+if (process.env.NODE_ENV === 'production') {
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, '../client/dist/index.html'));
+  });
+}
 
 // ─── Error Handler ────────────────────────────────────────────────────────────
 app.use((err, req, res, next) => {
