@@ -67,17 +67,26 @@ function canonicalizeState(state = '') {
 }
 
 function resolvePricing(state, city = '') {
+  const { getCurrentSeason, SEASONS } = require('./thresholds');
+  const season = getCurrentSeason();
   const canonicalState = canonicalizeState(state || 'Rajasthan');
   const pricing = LOCATION_PRICING.find((entry) => entry.state === canonicalState) || DEFAULT_PRICING;
+
+  let seasonalMultiplier = 1.0;
+  if (season === SEASONS.SUMMER) seasonalMultiplier = 1.2;
+  else if (season === SEASONS.WINTER) seasonalMultiplier = 0.8;
+
+  const finalPremium = Math.round(pricing.weeklyPremium * seasonalMultiplier);
 
   return {
     state: canonicalState,
     city: city || '',
-    label: pricing.label,
+    label: `${pricing.label} (${season !== 'summer' ? season.charAt(0).toUpperCase() + season.slice(1) : 'Peak Heat'})`,
     category: pricing.category,
-    weeklyPremium: pricing.weeklyPremium,
+    weeklyPremium: finalPremium,
     maxPayout: pricing.maxPayout,
     avgDailyWageRef: pricing.avgDailyWageRef,
+    season // Added for transparency
   };
 }
 

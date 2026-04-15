@@ -68,6 +68,7 @@ router.post('/activate-insurance', protect, async (req, res) => {
         $inc: { 'wallet.balance': -premium, totalPremiumPaid: premium },
         isInsured: true,
         premiumUntil: newExpiry,
+        insuranceActivationDate: now,
       },
       { new: true }
     );
@@ -92,6 +93,73 @@ router.post('/activate-insurance', protect, async (req, res) => {
   } catch (err) {
     console.error('[Insurance] Activation error:', err);
     res.status(500).json({ error: 'Failed to activate insurance.' });
+  }
+});
+
+const { getThreshold } = require('../utils/constants');
+const axios = require('axios');
+
+router.post('/deactivate-insurance', protect, async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id);
+
+    if (!user.isInsuranceActive()) {
+      return res.status(400).json({
+        error: 'Your insurance is already inactive or expired.',
+        code: 'INSURANCE_ALREADY_INACTIVE',
+      });
+    }
+
+    // Block deactivation during active heatwave conditions to prevent misuse
+    try {
+      // Use Open-Meteo as a reliable public source to check current conditions
+      const lat = user.lastLocation?.lat || 26.9124; // fallback to Jaipur
+      const lng = user.lastLocation?.lng || 75.7873;
+      
+      const response = await axios.get('https://api.open-meteo.com/v1/forecast', {
+        params: {
+          latitude: lat,
+          longitude: lng,
+          current: 'temperature_2m',
+          timezone: 'auto'
+        },
+        timeout: 5000
+      });
+
+      const currentTemp = response.data?.current?.temperature_2m;
+      const threshold = getThreshold(user.state);
+
+      if (currentTemp && currentTemp >= threshold) {
+        return res.status(403).json({
+          error: `Deactivation blocked: Extreme heat condition detected (${currentTemp}°C) in your region. IRDAI guidelines prevent coverage deactivation during active heatwave events to ensure continuous protection.`,
+          code: 'HEATWAVE_ACTIVE',
+          currentTemp,
+          threshold
+        });
+      }
+    } catch (weatherErr) {
+      console.warn('[Insurance] Could not verify heatwave status during deactivation:', weatherErr.message);
+      // If weather check fails, we might want to allow it or stick to safe side. 
+      // For fairness/safety, we'll allow deactivation if we can't prove a heatwave is happening.
+    }
+
+    const updatedUser = await User.findByIdAndUpdate(
+      user._id,
+      {
+        isInsured: false,
+        premiumUntil: null,
+      },
+      { new: true }
+    );
+
+    res.json({
+      message: 'Insurance coverage has been deactivated.',
+      isInsured: false,
+      premiumUntil: null,
+    });
+  } catch (err) {
+    console.error('[Insurance] Deactivation error:', err);
+    res.status(500).json({ error: 'Failed to deactivate insurance.' });
   }
 });
 

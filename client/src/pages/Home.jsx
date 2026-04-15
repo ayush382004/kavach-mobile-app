@@ -7,7 +7,7 @@ import BottomNav from '../components/BottomNav.jsx';
 import Splash from '../components/Splash.jsx';
 import { resolvePricing } from '../utils/pricing.js';
 
-const HEATWAVE_THRESHOLD = 45;
+// Threshold is dynamic based on user location
 
 export default function Home() {
   const { user } = useAuth();
@@ -209,13 +209,13 @@ export default function Home() {
             <div className="flex justify-between gap-4">
               <div className="flex-1">
                 <div className="text-[10px] font-bold tracking-[0.1em] text-white/40 uppercase">
-                  {live.weather && Number.isFinite(live.weather.temperature) && live.weather.temperature >= 45 ? 'Instant Payout' : 'Max Coverage'}
+                  {live.weather && Number.isFinite(live.weather.temperature) && live.weather.temperature >= (live.weather.heatwaveThreshold || 40) ? 'Instant Payout' : 'Max Coverage'}
                 </div>
                 <div className={`text-2xl font-black mt-1 ${live.weather?.payoutAmount > 0 ? 'text-green-400' : 'text-white'}`}>
                   {live.loading ? '...' : `₹${live.weather?.payoutAmount ?? pricing.maxPayout}`}
                 </div>
                 <div className="text-[10px] text-white/40 mt-1.5 font-medium">
-                  {live.weather?.temperature >= 45 ? `🔥 ${live.weather.temperature}°C — Threshold met!` : live.weather?.temperature ? `${live.weather.temperature}°C — Below threshold` : pricing.category}
+                  {live.weather?.temperature >= (live.weather?.heatwaveThreshold || 40) ? `🔥 ${live.weather.temperature}°C — Threshold met!` : live.weather?.temperature ? `${live.weather.temperature}°C — Below threshold` : pricing.category}
                 </div>
               </div>
               <div className="w-px bg-white/10"></div>
@@ -293,7 +293,7 @@ export default function Home() {
         )}
       </div>
 
-      <BottomNav />
+      {user && <BottomNav />}
     </div>
   );
 }

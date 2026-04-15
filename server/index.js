@@ -28,6 +28,7 @@ const chatbotRoutes = require('./routes/chatbot');
 
 // Cron jobs
 const { deductWeeklyPremiums } = require('./cron/premiums');
+const { processZeroTouchClaims } = require('./cron/claims');
 
 const app = express();
 const server = http.createServer(app);
@@ -264,6 +265,14 @@ function startServer() {
   }, { timezone: 'Asia/Kolkata' });
 
   console.log('[Cron] Weekly premium scheduler active (Mondays 6AM IST)');
+
+  // Every hour: Run Zero-Touch automated claims engine
+  cron.schedule('0 * * * *', () => {
+    console.log('[Cron] Running Zero-Touch claim processing...');
+    processZeroTouchClaims(io);
+  }, { timezone: 'Asia/Kolkata' });
+
+  console.log('[Cron] Zero-Touch claim engine active (Hourly)');
 }
 
 module.exports = { app, io };

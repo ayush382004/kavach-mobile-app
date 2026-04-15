@@ -36,16 +36,25 @@ export default function Chatbot() {
       }
     } catch {
       const reply = getLocalReply(text);
-      setMessages(prev => [...prev, { role: 'assistant', content: reply }]);
+      setMessages(prev => [...prev, { role: 'assistant', ...reply }]);
     } finally { setLoading(false); }
   };
 
-  const QUICK_QUESTIONS = [
-    'How do I file a claim?', 'How much is the premium?', 'When will I get paid?', 'Fraud detection?'
-  ];
+  const RichCard = ({ title, content, icon }) => (
+    <div style={{ padding: '4px 0' }}>
+       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+          <span style={{ fontSize: 24 }}>{icon}</span>
+          <span style={{ fontSize: 15, fontWeight: 800, color: '#f97316' }}>{title}</span>
+       </div>
+       <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.7)', lineHeight: 1.6 }}>{content}</div>
+    </div>
+  );
+
+  const [selectedOption, setSelectedOption] = useState(null);
+  const [showHelpSheet, setShowHelpSheet] = useState(false);
 
   return (
-    <div className="phone-screen">
+    <div className="phone-screen" style={{ position: 'relative', overflow: 'hidden' }}>
       <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
         <div style={{ padding: '24px 20px 10px', display: 'flex', alignItems: 'center', gap: 12 }}>
           <div style={{
@@ -75,7 +84,11 @@ export default function Chatbot() {
                 borderBottomRightRadius: msg.role === 'user' ? 4 : 20,
                 borderBottomLeftRadius: msg.role !== 'user' ? 4 : 20,
               }}>
-                {msg.content}
+                {msg.isRich ? (
+                  <RichCard title={msg.title} content={msg.content} icon={msg.icon} />
+                ) : (
+                  msg.content
+                )}
               </div>
             </div>
           ))}
@@ -89,17 +102,35 @@ export default function Chatbot() {
           <div ref={bottomRef} />
         </div>
 
-        <div style={{ padding: '12px 20px', background: 'linear-gradient(to top, #0d0d14 80%, transparent)' }}>
-          {messages.length <= 1 && (
-            <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 12, scrollbarWidth: 'none' }}>
-              {QUICK_QUESTIONS.map(q => (
-                <button key={q} onClick={() => sendMessage(q)} style={{ background: 'rgba(249,115,22,0.1)', border: '1px solid rgba(249,115,22,0.3)', color: '#fff', padding: '6px 12px', borderRadius: 20, fontSize: 11, fontWeight: 700, whiteSpace: 'nowrap' }}>
-                  {q}
-                </button>
-              ))}
-            </div>
-          )}
+        {showHelpSheet && (
+          <>
+            <div 
+              style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.7)', zIndex: 2000, backdropFilter: 'blur(4px)' }} 
+              onClick={() => setShowHelpSheet(false)} 
+            />
+            <HelpSheet 
+              onClose={() => setShowHelpSheet(false)} 
+              onSelect={(item) => {
+                setSelectedOption(item.id);
+                sendMessage(item.label);
+                setShowHelpSheet(false);
+              }} 
+            />
+          </>
+        )}
+
+        <div style={{ padding: '12px 20px', background: 'linear-gradient(to top, #0d0d14 80%, transparent)', zIndex: 1001 }}>
           <div style={{ display: 'flex', gap: 8 }}>
+            <button 
+               onClick={() => setShowHelpSheet(true)}
+               style={{ 
+                 width: 44, height: 44, borderRadius: '50%', 
+                 background: 'rgba(249,115,22,0.1)', border: '1px solid rgba(249,115,22,0.3)',
+                 color: '#f97316', fontSize: 18, display: 'flex', alignItems: 'center', justifyContent: 'center'
+               }}
+            >
+              ☰
+            </button>
             <input type="text" value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && sendMessage(input)} placeholder="Ask anything…" className="input-field" style={{ flex: 1, padding: '12px 16px', borderRadius: 24, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff' }} disabled={loading} />
             <button onClick={() => sendMessage(input)} disabled={loading || !input.trim()} style={{ width: 44, height: 44, borderRadius: '50%', background: '#f97316', color: '#fff', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>
               ↑
@@ -115,14 +146,103 @@ export default function Chatbot() {
 function getLocalReply(text) {
   const t = text.toLowerCase();
   
-  if (t.includes('hello') || t.includes('hi') || t.includes('namaste')) return 'Namaste! 🙏 Kavach Assistant aapki seva me hajir hai. Main aapki claims, wallet aur coverage se judi har problem solve kar sakta hoon. Kaise madad karun?';
-  if (t.includes('weather') || t.includes('heat') || t.includes('climate')) return '☀️ Kavach real-time heat alerts deta hai. Jab temperature aapke area me 45°C cross karta hai, Kavach automatically alert generate karta hai aur aapke app me claim file karne ka option aa jata hai. It is tied entirely to accurate Open-Meteo sensors.';
-  if (t.includes('claim') || t.includes('file')) return '📋 To file a claim:\n1. Make sure your insurance is active\n2. Open "File Claim"\n3. Kavach checks weather at your location\n4. Sentry-AI verifies hardware and location signals\n5. Approved money is processed to your selected payout route.';
-  if (t.includes('premium') || t.includes('cost') || t.includes('how much') || t.includes('₹29')) return '💰 KavachForWork uses dynamic weekly pricing.\n\nYour premium depends on your registered state and city (Average is ₹29/week). The app shows your exact weekly amount before activation, and renewal works only if your wallet has enough balance. Ensure Wallet is topped up!';
-  if (t.includes('fraud') || t.includes('ai') || t.includes('verify')) return '🤖 Our Sentry AI checks 8 signals:\n• Battery temperature\n• Network type\n• Screen brightness\n• GPS jitter & altitude\n• Battery drain rate\n\nYou can\'t fool it from an AC room! 🌡️ Sentry prevents fake insurance claims instantly without human review.';
-  if (t.includes('payout') || t.includes('money') || t.includes('bank') || t.includes('upi')) return '💸 Payouts depend on heat severity and your registered pricing slab.\n\nApproved claim money can be sent to your wallet, linked bank account, or directly to your UPI ID. Payouts are made within seconds of an approved AI Sentry check.';
-  if (t.includes('wallet') || t.includes('balance') || t.includes('top')) return '💳 To top up your wallet:\n1. Go to Wallet page\n2. Choose a quick amount or enter a custom amount (Minimum ₹24)\n3. Complete the payment flow\n4. Balance updates instantly in the app so auto-premiums continue smoothly.';
-  if (t.includes('thanks') || t.includes('thank')) return 'Shukriya! 🙏 Hum humesha aapki madad ke liye yahan hain. Stay safe in the heat and keep working hard! Please contact support@kavachforwork.in if you need anything else.';
+  if (t.includes('hello') || t.includes('hi') || t.includes('namaste')) return { content: 'Namaste! 🙏 Kavach Assistant aapki seva me hajir hai. Main aapki claims, wallet aur coverage se judi har problem solve kar sakta hoon. Kaise madad karun?' };
+
+  if (t.includes('zero-touch') || t.includes('auto') || t.includes('1')) return { 
+    isRich: true, icon: '⚡', title: 'Zero-Touch Claims Architecture',
+    content: 'Kavach logic is powered by a proprietary **Zero-Touch Cron Engine**. Unlike standard insurance, you don\'t need to "file" a request after a heatwave. Our servers poll certified weather stations every 60 minutes. \n\n🔒 **Trigger Rule:** If your local temperature exceeds your state-assigned threshold for 3 consecutive readings (cumulative intensity), the system self-executes a smart contract. \n\n💸 **Instant Settlement:** Funds are dispersed to your wallet via our automated API switch within 300ms of the trigger event without any human intervention.'
+  };
+
+  if (t.includes('threshold') || t.includes('location') || t.includes('2')) return {
+    isRich: true, icon: '📍', title: 'IMD-Aligned Dynamic Thresholds',
+    content: 'We adhere strictly to the **India Meteorological Department (IMD)** regional classification for heatwave fairness. Fixed 45°C limits are obsolete. \n\n📍 **State Classification:**\n• **Category A (Arid):** Rajasthan/Delhi trigger at **40°C**.\n• **Category B (Coastal):** Kerala/Goa trigger at **35.1°C** (lower due to high humidity stress).\n• **Category C (Highlands):** J&K/Ladakh trigger at **30°C**.\n\nOur system calculates your threshold daily based on your current GPS state-mapping to ensure you aren\'t denied coverage just because your region is naturally cooler than others.'
+  };
+
+  if (t.includes('intensity') || t.includes('feels like') || t.includes('3')) return {
+    isRich: true, icon: '🔥', title: 'Max Intensity (Apparent Temperature)',
+    content: 'Temperature alone doesn\'t tell the whole story. Kavach uses the **NASA-Standard Feels Like (Apparent Temperature)** index. \n\n☁️ **Why?** High humidity prevents sweat from evaporating, making 38°C feel like 44°C. Our claim engine reads both Ambient Temp and Apparent Intensity. \n\n⚖️ **The Rule:** If Ambient is 38 but Feels Like is 42, the system uses 42°C for your claim check. This ensures fairness for workers in humid regions like Mumbai or Chennai.'
+  };
+
+  if (t.includes('cooling-off') || t.includes('waiting') || t.includes('4')) return {
+    isRich: true, icon: '🛡', title: 'Anti-Fraud Policy (48h Cooling)',
+    content: 'To maintain a stable insurance pool for all honest workers, we enforce a mandatory **48-Hour Waiting Period** (Parametric Cooling-off). \n\n🚫 **The Purpose:** This prevents a user from activating insurance *only after* they see a heatwave starting on the news. Coverage becomes "Locked & Active" exactly 48 hours after your first premium payment is confirmed. Any heatwave occurring before this window is not eligible for payout.'
+  };
+
+  if (t.includes('premium') || t.includes('cancellation') || t.includes('5')) return {
+    isRich: true, icon: '💰', title: 'Financial Policies & No-Refund',
+    content: 'KavachForWork operates on a **Non-Refundable Weekly Subscription** model. \n\n⚠️ **Deactivation Rules:**\n1. You can deactivate anytime, but the current week\'s premium will not be pro-rated or returned.\n2. Deactivation is physically blocked during active heatwave alerts for security. \n3. If your wallet balance falls below ₹24, auto-renewal will fail, and coverage will lapse instantly.'
+  };
+
+  if (t.includes('sentry') || t.includes('verify') || t.includes('6')) return {
+    isRich: true, icon: '🤖', title: 'Sentry-AI (Firmware Verification)',
+    content: 'Sentry-AI is our military-grade fraud detection layer. It doesn\'t just check GPS; it cross-references 8 hardware signals:\n\n• **Thermal Drift:** Checks if battery temp is rising (indicating sun exposure).\n• **Ambient Sync:** Reads light sensors to ensure you aren\'t indoors.\n• **GPS Jitter:** Detects "Mock Location" apps that simulate fake movement.\n• **Network Latency:** Verifies the ISP is a local mobile tower, not a home WiFi.\n\nAttempts to spoof these signals result in an immediate permanent ban from the Kavach network.'
+  };
+
+  if (t.includes('guide') || t.includes('state') || t.includes('7')) return {
+    isRich: true, icon: '🌍', title: 'National Climate Master-List',
+    content: 'Kavach dynamically maps triggers for all 28 States & 8 UTs based on IMD fairness standards:\n\n🔥 **Hyper-Heat (40-44°C):**\n• Rajasthan: 40°C | Delhi: 44°C\n• Punjab/Haryana/UP: 43°C\n• Bihar/MP/Gujarat: 42°C\n\n🌾 **Inland & Industrial (40-42°C):**\n• MH/Odisha/AP/Telangana: 40°C\n• Chhattisgarh/Jharkhand: 41°C\n\n🌴 **Coastal High-Humidity (35-38°C):**\n• Tamil Nadu/Puducherry: 38°C\n• Karnataka/Goa: 36-37°C\n• Kerala/Andaman: 35°C\n\n⛰️ **Hills & Highlands (25-32°C):**\n• Ladakh: 25°C | Sikkim: 28°C\n• HP/Uttarakhand/J&K: 30°C\n• NE States (Assam/Meghalaya): 30-37°C\n\n*Note: Your threshold updates instantly if you cross state borders.*'
+  };
+
+  if (t.includes('thanks') || t.includes('thank')) return { content: 'Shukriya! 🙏 Hum humesha aapki madad ke liye yahan hain. Stay safe, stay hydrated, and stay insured with Kavach!' };
   
-  return 'Main is sawal ka jawab abhi nahi de paa raha. Please in topics par poohein: Claims, Premium payments, Sentry AI Verification, ya Wallet top-up. 🙏';
+  return { content: 'Main is sawal ka jawab abhi nahi de paa raha. Please select an option from the menu above to get a deep-dive technical explanation. 🙏' };
+}
+
+function HelpSheet({ onSelect }) {
+  const QUICK_MENU = [
+    { id: 1, label: 'Zero-Touch Claims (Auto Payout)', icon: '⚡' },
+    { id: 2, label: 'Dynamic IMD Thresholds', icon: '📍' },
+    { id: 3, label: 'Maximum Intensity Logic', icon: '🔥' },
+    { id: 4, label: 'Anti-Fraud Cooling-off (48h)', icon: '🛡' },
+    { id: 5, label: 'Premium & Cancellation', icon: '💰' },
+    { id: 6, label: 'Sentry-AI Verification', icon: '🤖' },
+    { id: 7, label: 'Regional Threshold Guide', icon: '🌍' },
+  ];
+
+  return (
+    <div 
+      className="fade-up-heavy"
+      style={{
+        position: 'absolute', left: 0, right: 0, bottom: 0,
+        height: 'auto', maxHeight: '80%',
+        borderTopLeftRadius: 32, borderTopRightRadius: 32,
+        padding: '24px 20px 40px',
+        zIndex: 2001,
+        background: 'rgba(20, 20, 28, 0.98)',
+        backdropFilter: 'blur(30px)',
+        boxShadow: '0 -10px 40px rgba(0,0,0,0.8)',
+        borderTop: '1px solid rgba(255,255,255,0.1)',
+        overflowY: 'auto'
+      }}
+    >
+      <div style={{ width: 40, height: 4, background: 'rgba(255,255,255,0.2)', borderRadius: 2, margin: '0 auto 20px' }} />
+      <div style={{ fontSize: 13, fontWeight: 900, color: '#f97316', marginBottom: 24, letterSpacing: '0.1em', textAlign: 'center' }}>ADVANCED ACTIONS</div>
+      
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        {QUICK_MENU.map((item) => (
+          <button 
+            key={item.id} 
+            onClick={() => onSelect(item)}
+            className="btn-secondary"
+            style={{ 
+              display: 'flex', alignItems: 'center', gap: 14, 
+              padding: '16px 18px', borderRadius: 20, 
+              background: 'rgba(255,255,255,0.03)',
+              border: '1px solid rgba(255,255,255,0.08)',
+              color: '#fff', textAlign: 'left', cursor: 'pointer',
+              justifyContent: 'flex-start'
+            }}
+          >
+            <div style={{ 
+              width: 32, height: 32, borderRadius: '10px', background: 'rgba(249,115,22,0.15)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 900, color: '#f97316'
+            }}>
+              {item.id}
+            </div>
+            <span style={{ fontSize: 14, fontWeight: 700 }}>{item.icon} {item.label}</span>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
 }

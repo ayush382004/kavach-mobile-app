@@ -7,7 +7,7 @@ import BottomNav from '../../components/BottomNav.jsx';
 import { getCurrentCoordinates, reverseGeocodeIndia } from '../../utils/location.js';
 
 const STEPS = ['Check Weather', 'Sensors', 'AI Verifying', 'Result'];
-const HEATWAVE_THRESHOLD = 45;
+// Threshold is now dynamic based on location and season
 
 export default function ClaimPage() {
   const { user, refreshUser } = useAuth();
@@ -154,30 +154,116 @@ export default function ClaimPage() {
 
             {step === 1 && weather && (
               <div className="fade-up" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                <div style={{
-                  padding: 24, borderRadius: 24,
-                  background: weather.isHeatwave ? 'linear-gradient(135deg, rgba(239,68,68,0.15) 0%, rgba(249,115,22,0.15) 100%)' : 'rgba(255,255,255,0.05)',
-                  border: weather.isHeatwave ? '1px solid rgba(239,68,68,0.3)' : '1px solid rgba(255,255,255,0.1)',
-                }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div>
-                      <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>📍 {weather.city}</div>
-                      <div style={{ fontSize: 44, fontWeight: 900, color: '#fff', fontFamily: "'Sora',sans-serif", lineHeight: 1 }}>{weather.temperature}°C</div>
+                  <div className="glass fade-up" style={{
+                    padding: '24px',
+                    borderRadius: '28px',
+                    background: weather.isHeatwave 
+                      ? 'linear-gradient(135deg, rgba(239, 68, 68, 0.2) 0%, rgba(249, 115, 22, 0.2) 100%)' 
+                      : 'linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.02) 100%)',
+                    border: weather.isHeatwave ? '1px solid rgba(239, 68, 68, 0.3)' : '1px solid rgba(255, 255, 255, 0.1)',
+                    boxShadow: weather.isHeatwave ? '0 8px 32px rgba(239, 68, 68, 0.2)' : '0 8px 32px rgba(0, 0, 0, 0.2)',
+                    minHeight: '220px', // Prevent layout shift
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'center',
+                    position: 'relative',
+                    overflow: 'hidden'
+                  }}>
+                    {/* Animated background glow */}
+                    <div style={{
+                      position: 'absolute', top: -50, right: -50, width: 150, height: 150,
+                      background: weather.isHeatwave ? 'rgba(239,68,68,0.2)' : 'rgba(56,189,248,0.1)',
+                      filter: 'blur(40px)', borderRadius: '50%', pointerEvents: 'none'
+                    }} />
+
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', zIndex: 1 }}>
+                      <div>
+                         <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                            <span style={{ fontSize: 14 }}>📍</span>
+                            <span style={{ fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.7)', letterSpacing: '0.05em' }}>
+                              {weather.city?.toUpperCase()}
+                            </span>
+                         </div>
+                         <div style={{ fontSize: 56, fontWeight: 900, color: '#fff', fontFamily: "'Sora',sans-serif", lineHeight: 1, letterSpacing: '-0.02em' }}>
+                           {weather.temperature.toFixed(1)}°
+                         </div>
+                         <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.4)', marginTop: 4, fontWeight: 500 }}>
+                           Feels like {weather.feelsLike?.toFixed(1)}° · {weather.condition}
+                         </div>
+                      </div>
+                      <div style={{ 
+                        background: 'rgba(255,255,255,0.05)', borderRadius: '24px', padding: '10px',
+                        backdropFilter: 'blur(16px)', border: '1px solid rgba(255,255,255,0.15)',
+                        width: 72, height: 72, display: 'flex', alignItems: 'center', justifyContent: 'center'
+                      }}>
+                        {weather.weatherIcon ? (
+                          <img 
+                            src={weather.weatherIcon} 
+                            alt={weather.condition} 
+                            style={{ width: '100%', height: '100%', objectFit: 'contain', filter: 'drop-shadow(0 0 15px rgba(255,255,255,0.5))' }} 
+                            onError={(e) => { e.target.onerror = null; e.target.src = 'https://openweathermap.org/img/wn/01d@4x.png'; }}
+                          />
+                        ) : (
+                          <div style={{ fontSize: 44, filter: 'drop-shadow(0 0 10px rgba(255,255,255,0.3))' }}>
+                            {weather.isHeatwave ? '🔥' : '☀️'}
+                          </div>
+                        )}
+                      </div>
                     </div>
-                    {weather.weatherIcon ? <img src={weather.weatherIcon} alt="" style={{ width: 50, height: 50 }} /> : <div style={{ fontSize: 40 }}>☁️</div>}
+
+                    <div style={{ marginTop: 24, zIndex: 1 }}>
+                       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+                          <span style={{ fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.5)' }}>INTENSITY GAUGE</span>
+                          <span style={{ fontSize: 12, fontWeight: 800, color: weather.isHeatwave ? '#f87171' : '#38bdf8' }}>
+                            {weather.isHeatwave ? 'CRITICAL' : 'BELOW THRESHOLD'}
+                          </span>
+                       </div>
+                       <div style={{ height: 10, background: 'rgba(255,255,255,0.1)', borderRadius: 5, overflow: 'hidden', position: 'relative' }}>
+                          <div style={{ 
+                            height: '100%', 
+                            width: `${Math.min((weather.temperature / weather.heatwaveThreshold) * 100, 100)}%`,
+                            background: weather.isHeatwave 
+                              ? 'linear-gradient(90deg, #f97316, #ef4444)' 
+                              : 'linear-gradient(90deg, #38bdf8, #818cf8)',
+                            borderRadius: 5,
+                            transition: 'width 1.5s cubic-bezier(0.34, 1.56, 0.64, 1)'
+                          }} />
+                       </div>
+                       <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6, fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.3)' }}>
+                          <span>0°C</span>
+                          <span>STATE TRIGGER: {weather.heatwaveThreshold}°C</span>
+                       </div>
+                    </div>
+
+                    {weather.isHeatwave ? (
+                      <div className="fade-up" style={{ 
+                        marginTop: 20, padding: '14px', borderRadius: '16px', 
+                        background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)',
+                        display: 'flex', alignItems: 'center', gap: 12
+                      }}>
+                        <div style={{ fontSize: 24 }}>💸</div>
+                        <div>
+                          <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(239, 68, 68, 0.6)', textTransform: 'uppercase' }}>Eligible Payout</div>
+                          <div style={{ fontSize: 18, fontWeight: 900, color: '#fff' }}>₹{weather.payoutAmount} <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', fontWeight: 400 }}>Immediate Credit</span></div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div style={{ 
+                        marginTop: 20, padding: '14px', borderRadius: '16px', 
+                        background: 'rgba(255, 255, 255, 0.03)', border: '1px solid rgba(255, 255, 255, 0.05)',
+                        fontSize: 12, color: 'rgba(255,255,255,0.5)', textAlign: 'center', lineHeight: 1.5
+                      }}>
+                         It is currently <span style={{ color: '#fff', fontWeight: 700 }}>{weather.temperature}°C</span>. 
+                         Kavach protection triggers at <span style={{ color: '#fff', fontWeight: 700 }}>{weather.heatwaveThreshold}°C</span> for your state.
+                      </div>
+                    )}
                   </div>
-                  {weather.isHeatwave ? (
-                    <div style={{ padding: 12, borderRadius: 12, background: 'rgba(239,68,68,0.2)', color: '#fca5a5', fontSize: 13, fontWeight: 500, marginTop: 16 }}>
-                      🔥 Heatwave Detected! {weather.temperature}°C ≥ 45°C. Eligible Payout: ₹{weather.payoutAmount}.
-                    </div>
-                  ) : (
-                    <div style={{ padding: 12, borderRadius: 12, background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.6)', fontSize: 13, marginTop: 16 }}>
-                      ℹ️ Temperature is {weather.temperature}°C. Claim requires ≥ 45°C.
-                    </div>
-                  )}
+
+                <div style={{ display: 'flex', gap: 10 }}>
+                   <button onClick={reset} className="btn-secondary" style={{ flex: 1 }}>← Back to Check</button>
                 </div>
 
-                {weather.isHeatwave ? (
+                {weather.isHeatwave && (
                   <div className="glass" style={{ padding: 24 }}>
                     <h3 style={{ fontSize: 16, fontWeight: 800, color: '#fff' }}>Verify Outdoors</h3>
                     <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginTop: 4, marginBottom: 16 }}>Our Sentry AI will check device sensors (temp, network, brightness) to confirm you're working outside.</p>
@@ -185,7 +271,7 @@ export default function ClaimPage() {
                       {sensorLoading ? 'Reading Sensors…' : 'Collect Data & Submit'}
                     </button>
                   </div>
-                ) : <button onClick={reset} className="btn-secondary">← Try Again</button>}
+                )}
               </div>
             )}
 

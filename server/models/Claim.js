@@ -126,6 +126,7 @@ const claimSchema = new mongoose.Schema({
 
   heatwaveTriggered: { type: Boolean, default: false },
   triggerTemp: Number,
+  isAutomated: { type: Boolean, default: false },
 }, {
   timestamps: true,
 });

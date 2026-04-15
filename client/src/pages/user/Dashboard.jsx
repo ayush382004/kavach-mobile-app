@@ -76,6 +76,13 @@ export default function Dashboard() {
     }
   }, [user?.city, user?.state]);
 
+  const isActive = balance?.isInsuranceActive;
+  const premium = balance?.weeklyPremium || user?.weeklyPremium || 29;
+  const bal = balance?.balance ?? 0;
+  const expiryDate = balance?.premiumUntil
+    ? new Date(balance.premiumUntil).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })
+    : null;
+
   useEffect(() => { loadData(); loadWeather(); }, [loadData, loadWeather]);
   // Refresh weather every 3 min
   useEffect(() => {
@@ -96,16 +103,33 @@ export default function Dashboard() {
     }
   };
 
-  const isActive = balance?.isInsuranceActive;
-  const premium = balance?.weeklyPremium || user?.weeklyPremium || 29;
-  const bal = balance?.balance ?? 0;
-  const expiryDate = balance?.premiumUntil
-    ? new Date(balance.premiumUntil).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })
-    : null;
+  const handleDeactivate = async () => {
+    try {
+      const confirmMsg = `⚠️ WARNING: MONEY RELATED INFORMATION\n\n` +
+        `If you deactivate now, your current ₹${premium} weekly premium WILL NOT BE REFUNDED.\n` +
+        `Your coverage will stop immediately even if you have days remaining.\n\n` +
+        `Are you sure you want to proceed and lose your current premium?`;
+        
+      if (!window.confirm(confirmMsg)) return;
+      
+      setActivating(true);
+      const { data } = await userAPI.deactivateInsurance();
+      showToast('🛡 Coverage Deactivated', data.message || 'Insurance is now inactive');
+      await Promise.all([loadData(), refreshUser()]);
+    } catch (err) {
+      showToast('Deactivation blocked', err.response?.data?.error || 'Heatwave conditions active', 'error');
+    } finally {
+      setActivating(false);
+    }
+  };
+
+
 
   const temp = weather?.temperature;
   const isHeatwave = weather?.isHeatwave;
-  const riskColor = isHeatwave ? '#ef4444' : temp >= 40 ? '#f59e0b' : '#22c55e';
+  const hThreshold = weather?.heatwaveThreshold || 40;
+  const riskColor = isHeatwave ? '#ef4444' : temp >= (hThreshold - 2) ? '#f59e0b' : '#22c55e';
+/* Intensity: Red = Active Heatwave, Orange = Close to Threshold (within 2°C), Green = Safe */
 
   // Compute payout total from actual transactions
   const totalPayoutsFromTx = transactions
@@ -160,7 +184,7 @@ export default function Dashboard() {
 
       {/* ── Risk Ring + Weather Hero ── */}
       <div style={{ display: 'flex', justifyContent: 'center', padding: '8px 20px 20px' }}>
-        <RiskRing temperature={temp} isHeatwave={isHeatwave} size={168}>
+        <RiskRing temperature={temp} isHeatwave={isHeatwave} threshold={hThreshold} size={168}>
           <div style={{ textAlign: 'center' }}>
             <div style={{ fontSize: 28, lineHeight: 1, marginBottom: 2 }}>
               {weather ? getWeatherEmoji(weather.condition) : '🌡️'}
@@ -181,7 +205,7 @@ export default function Dashboard() {
       <div style={{ padding: '0 16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
 
         {/* ── Stats Row ── */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, minHeight: 180 }}>
           <StatCard
             label="Wallet Balance"
             value={`₹${bal}`}
@@ -214,9 +238,9 @@ export default function Dashboard() {
         </div>
 
         {/* ── Shield Card / Swipe to Activate ── */}
-        <div className="glass" style={{ padding: '20px' }}>
+        <div className="glass" style={{ padding: '20px', minHeight: 100, display: 'flex', alignItems: 'center' }}>
           {isActive ? (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 14, width: '100%' }}>
               <div style={{
                 width: 52, height: 52, borderRadius: '50%',
                 background: 'rgba(34,197,94,0.12)',
@@ -231,40 +255,41 @@ export default function Dashboard() {
                   Kavach Shield Active
                 </div>
                 <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginTop: 2 }}>
-                  Protected until {expiryDate} • ₹{premium}/week
+                  Until {expiryDate} • ₹{premium}/wk
                 </div>
               </div>
-              <Link
-                to="/claim"
-                style={{
-                  background: 'rgba(34,197,94,0.15)',
-                  border: '1px solid rgba(34,197,94,0.3)',
-                  color: '#4ade80', padding: '8px 14px',
-                  borderRadius: 12, fontSize: 12, fontWeight: 700,
-                  textDecoration: 'none', whiteSpace: 'nowrap',
-                }}
-              >
-                Claim →
-              </Link>
+              <div style={{ display: 'flex', gap: 6 }}>
+                <Link
+                  to="/claim"
+                  style={{
+                    background: 'rgba(34,197,94,0.15)',
+                    border: '1px solid rgba(34,197,94,0.3)',
+                    borderRadius: 12, color: '#4ade80', padding: '8px 14px',
+                    fontSize: 12, fontWeight: 700, textDecoration: 'none',
+                  }}
+                >
+                  Claim
+                </Link>
+                <button
+                  onClick={handleDeactivate}
+                  disabled={activating}
+                  style={{
+                    background: 'rgba(255,255,255,0.05)',
+                    border: '1px solid rgba(255,255,255,0.1)',
+                    color: 'rgba(255,255,255,0.5)', padding: '8px 14px',
+                    borderRadius: 12, fontSize: 12, fontWeight: 700,
+                    cursor: 'pointer',
+                  }}
+                >
+                  Off
+                </button>
+              </div>
             </div>
           ) : (
-            <div>
-              <div style={{ marginBottom: 12 }}>
-                <div style={{ fontSize: 15, fontWeight: 800, color: '#fff' }}>
-                  Activate Kavach Shield
-                </div>
-                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginTop: 4 }}>
-                  {bal >= premium
-                    ? `₹${premium} from your wallet · 7-day heat protection`
-                    : `Insufficient balance (₹${bal}). `}
-                  {bal < premium && (
-                    <Link to="/wallet" style={{ color: '#f97316', fontWeight: 700 }}>Top up →</Link>
-                  )}
-                </div>
-              </div>
+            <div style={{ width: '100%' }}>
               <SwipeToActivate
                 onConfirm={handleActivate}
-                label={`Swipe to Activate — ₹${premium}`}
+                label={`Activate Kavach — ₹${premium}`}
                 disabled={bal < premium}
                 loading={activating}
               />

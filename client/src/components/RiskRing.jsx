@@ -4,13 +4,13 @@
  */
 import { useMemo } from 'react';
 
-export default function RiskRing({ temperature, isHeatwave, children, size = 160 }) {
+export default function RiskRing({ temperature, isHeatwave, threshold = 40, children, size = 160 }) {
   const level = useMemo(() => {
     if (!temperature) return 'green';
-    if (isHeatwave || temperature >= 45) return 'red';
-    if (temperature >= 40) return 'orange';
+    if (isHeatwave || temperature >= threshold) return 'red';
+    if (temperature >= (threshold - 3)) return 'orange';
     return 'green';
-  }, [temperature, isHeatwave]);
+  }, [temperature, isHeatwave, threshold]);
 
   const label = {
     green: 'All Clear',

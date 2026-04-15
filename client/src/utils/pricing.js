@@ -67,7 +67,15 @@ export function isSupportedState(state = '') {
   return LOCATION_PRICING.some((entry) => entry.state === canonicalState);
 }
 
+export function getCurrentSeason() {
+  const month = new Date().getMonth() + 1; // 1-12
+  if (month >= 3 && month <= 6) return 'summer';
+  if (month >= 7 && month <= 9) return 'monsoon';
+  return 'winter';
+}
+
 export function resolvePricing(state, city = '') {
+  const season = getCurrentSeason();
   const canonicalState = canonicalizeState(state || 'Rajasthan');
   const pricing =
     LOCATION_PRICING.find((entry) => entry.state === canonicalState) || {
@@ -78,13 +86,20 @@ export function resolvePricing(state, city = '') {
       avgDailyWageRef: 'N/A',
     };
 
+  let seasonalMultiplier = 1.0;
+  if (season === 'summer') seasonalMultiplier = 1.2;
+  else if (season === 'winter') seasonalMultiplier = 0.8;
+
+  const finalPremium = Math.round(pricing.weeklyPremium * seasonalMultiplier);
+
   return {
     state: canonicalState,
     city,
-    label: pricing.label,
+    label: `${pricing.label} (${season !== 'summer' ? season.charAt(0).toUpperCase() + season.slice(1) : 'Peak Heat'})`,
     category: pricing.category,
-    weeklyPremium: pricing.weeklyPremium,
+    weeklyPremium: finalPremium,
     maxPayout: pricing.maxPayout,
     avgDailyWageRef: pricing.avgDailyWageRef,
+    season
   };
 }

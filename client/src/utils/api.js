@@ -47,6 +47,7 @@ export const userAPI = {
   getProfile: () => api.get('/user/profile'),
   updateProfile: (data) => api.put('/user/profile', data),
   activateInsurance: () => api.post('/user/activate-insurance'),
+  deactivateInsurance: () => api.post('/user/deactivate-insurance'),
   getTransactions: (params) => api.get('/user/transactions', { params }),
 };
 

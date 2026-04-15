@@ -13,21 +13,21 @@ export default function TermsModal({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-stone-950/50 px-4 py-6">
-      <div className="w-full max-w-2xl rounded-3xl bg-white shadow-2xl">
-        <div className="flex items-center justify-between border-b border-stone-100 px-6 py-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-stone-950/60 px-4 py-4">
+      <div className="w-full max-w-lg rounded-3xl bg-white shadow-2xl overflow-hidden">
+        <div className="flex items-center justify-between border-b border-stone-100 px-5 py-3">
           <div>
-            <div className="font-display text-xl font-bold text-kavach-dark">Terms and Conditions</div>
-            <div className="mt-1 text-sm text-gray-500">
-              Review once before account creation.
+            <div className="font-display text-lg font-bold text-kavach-dark">Terms & Conditions</div>
+            <div className="text-[11px] text-gray-500">
+              Please review before proceeding.
             </div>
           </div>
-          <button onClick={onClose} className="rounded-full border border-stone-200 px-3 py-1 text-sm text-gray-600 hover:bg-stone-50">
+          <button onClick={onClose} className="rounded-full border border-stone-200 px-3 py-1 text-xs text-gray-600 hover:bg-stone-50">
             Close
           </button>
         </div>
 
-        <div className="max-h-[70vh] space-y-4 overflow-y-auto px-6 py-5 text-sm leading-7 text-gray-700">
+        <div className="max-h-[55vh] space-y-3 overflow-y-auto px-5 py-4 text-[13px] leading-6 text-gray-700">
           <div className="rounded-2xl border border-orange-100 bg-orange-50 p-4">
             <div className="font-semibold text-kavach-dark">KAVACH FOR WORK: TERMS AND CONDITIONS</div>
             <div className="mt-1 text-xs text-gray-600">
@@ -98,20 +98,20 @@ export default function TermsModal({
             </p>
           </section>
 
-          <div className="rounded-2xl border border-sky-100 bg-sky-50 p-4">
+          <div className="rounded-xl border border-sky-100 bg-sky-50 p-3">
             <div className="font-semibold text-kavach-dark">Live verification</div>
-            <div className="mt-1 text-xs text-gray-600">
-              Selected state: {selectedState || 'Not selected'}
+            <div className="mt-1 text-[11px] text-gray-600">
+              State: {selectedState || 'Not selected'}
             </div>
-            <div className="text-xs text-gray-600">
-              Detected location: {detectedLocation?.formatted || 'Waiting for live location'}
+            <div className="text-[11px] text-gray-600">
+              Location: {detectedLocation?.formatted || 'Waiting...'}
             </div>
-            <div className={`mt-2 text-sm ${locationMatched ? 'text-green-700' : 'text-amber-700'}`}>
+            <div className={`mt-1.5 text-xs ${locationMatched ? 'text-green-700 font-bold' : 'text-amber-700'}`}>
               {locationMatched
-                ? 'Live location matches the selected state.'
+                ? '✓ Location matches state.'
                 : syncReady
-                  ? 'Live location synced. You can continue with account creation.'
-                  : 'Live location sync is recommended, but you can continue without it.'}
+                  ? '✓ Sync complete. You can continue.'
+                  : 'Location sync recommended.'}
             </div>
           </div>
 
@@ -122,26 +122,28 @@ export default function TermsModal({
           )}
         </div>
 
-        <div className="flex flex-col gap-3 border-t border-stone-100 px-6 py-4 sm:flex-row sm:justify-end">
-          <div className="text-xs text-gray-500 sm:mr-auto sm:self-center">
-            Claims still require live location and sensor verification.
+        <div className="flex flex-col gap-2 border-t border-stone-100 px-5 py-3 sm:flex-row sm:justify-end">
+          <div className="text-[10px] text-gray-400 sm:mr-auto sm:self-center">
+            Subject to live sensor verification.
           </div>
-          <button
-            type="button"
-            onClick={onRunSync}
-            disabled={syncing}
-            className="btn-secondary"
-          >
-            {syncing ? 'Verifying...' : 'Verify live location'}
-          </button>
-          <button
-            type="button"
-            onClick={onAccept}
-            disabled={syncing}
-            className="btn-primary disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {syncReady ? 'Accept and create account' : 'Accept and continue'}
-          </button>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={onRunSync}
+              disabled={syncing}
+              className="flex-1 rounded-xl bg-stone-100 px-4 py-2 text-xs font-bold text-stone-600 sm:flex-none"
+            >
+              {syncing ? '...' : 'Verify'}
+            </button>
+            <button
+              type="button"
+              onClick={onAccept}
+              disabled={syncing}
+              className="flex-1 rounded-xl bg-kavach-orange px-4 py-2 text-xs font-bold text-white sm:flex-none disabled:opacity-50"
+            >
+              Accept
+            </button>
+          </div>
         </div>
       </div>
     </div>

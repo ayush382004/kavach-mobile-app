@@ -16,7 +16,7 @@ const OPENWEATHER_KEY = process.env.OPENWEATHER_API_KEY;
 if (!OPENWEATHER_KEY) {
   console.warn('⚠️  WARNING: OPENWEATHER_API_KEY not set in environment. Using Open-Meteo as primary.');
 }
-const { getPayoutTier, getPayoutAmountForMax, HEATWAVE_THRESHOLD } = require('../utils/constants');
+const { getPayoutTier, getPayoutAmountForMax, getThreshold } = require('../utils/constants');
 const { resolvePricing } = require('../utils/pricing');
 const OPEN_METEO_FORECAST_URL = 'https://api.open-meteo.com/v1/forecast';
 const OPEN_METEO_GEOCODING_URL = 'https://geocoding-api.open-meteo.com/v1/search';
@@ -31,8 +31,9 @@ function canUseOpenWeather() {
 // ─── Heatwave Check (primary oracle for payout trigger) ───────────────────────
 router.get('/heatwave', protect, async (req, res) => {
   const cacheKey = `hw:${req.query.lat || ''}:${req.query.lng || ''}:${(req.query.city || 'jaipur').toLowerCase()}`;
+  const forceRefresh = req.query.refresh === 'true';
   const cached = cache.get(cacheKey);
-  if (cached) return res.json({ ...cached, fromCache: true });
+  if (cached && !forceRefresh) return res.json({ ...cached, fromCache: true });
 
   try {
     const primary = await getOpenMeteoWeather({
@@ -67,13 +68,13 @@ router.get('/heatwave', protect, async (req, res) => {
       windSpeed: data.wind.speed,
       precipitation: data.rain ? data.rain['1h'] || 0 : 0,
       condition: data.weather?.[0]?.description || 'Clear',
-      weatherIcon: data.weather?.[0]?.icon,
+      weatherIcon: `https://openweathermap.org/img/wn/${data.weather?.[0]?.icon || '01d'}@2x.png`,
       city: data.name, region: '', country: data.sys?.country,
-      isHeatwave: temp >= HEATWAVE_THRESHOLD,
-      heatwaveThreshold: HEATWAVE_THRESHOLD,
+        isHeatwave: temp >= getThreshold(req.query.state || req.user?.state || 'default'),
+        heatwaveThreshold: getThreshold(req.query.state || req.user?.state || 'default'),
       pricing,
-      payoutTier: getPayoutTier(temp),
-      payoutAmount: getPayoutAmountForMax(pricing.maxPayout, temp),
+      payoutTier: getPayoutTier(temp, req.query.state || req.user?.state || 'Rajasthan'),
+      payoutAmount: getPayoutAmountForMax(pricing.maxPayout, temp, req.query.state || req.user?.state || 'Rajasthan'),
       timestamp: data.dt,
       source: 'OpenWeather',
     };
@@ -101,6 +102,9 @@ router.get('/current', async (req, res) => {
         city: req.query.city || 'Jaipur',
         state: req.query.state,
       });
+      const currentThreshold = getThreshold(req.query.state || 'Rajasthan');
+      data.heatwaveThreshold = currentThreshold;
+      data.isHeatwave = data.temperature >= currentThreshold;
       cache.set(cacheKey, data, 180);
       return res.json(data);
     }
@@ -122,10 +126,11 @@ router.get('/current', async (req, res) => {
         humidity: fallback.humidity,
         condition: fallback.condition,
         weatherIcon: null,
-        isHeatwave: fallback.temperature >= HEATWAVE_THRESHOLD,
+        isHeatwave: fallback.temperature >= getThreshold(req.query.state || 'default'),
+        heatwaveThreshold: getThreshold(req.query.state || 'default'),
         pricing,
-        payoutTier: getPayoutTier(fallback.temperature),
-        payoutAmount: getPayoutAmountForMax(pricing.maxPayout, fallback.temperature),
+        payoutTier: getPayoutTier(fallback.temperature, req.query.state || 'default'),
+        payoutAmount: getPayoutAmountForMax(pricing.maxPayout, fallback.temperature, req.query.state || 'default'),
         source: 'Open-Meteo',
       };
       cache.set(cacheKey, result, 180);
@@ -214,6 +219,7 @@ async function getOpenMeteoWeather({ lat, lng, city, user }) {
     precipitation: current.precipitation || 0,
     condition: getWeatherCodeLabel(current.weather_code),
     timestamp: current.time,
+    weatherIcon: getWeatherIconByCode(current.weather_code),
   };
 }
 
@@ -235,11 +241,11 @@ async function getOpenWeather({ lat, lng, city, state }) {
     feelsLike: data.main.feels_like,
     humidity: data.main.humidity,
     condition: data.weather?.[0]?.description || 'Clear',
-    weatherIcon: data.weather?.[0]?.icon || null,
-    isHeatwave: temperature >= HEATWAVE_THRESHOLD,
+    weatherIcon: `https://openweathermap.org/img/wn/${data.weather?.[0]?.icon || '01d'}@2x.png`,
+    isHeatwave: temperature >= getThreshold(state || 'default'),
     pricing,
-    payoutTier: getPayoutTier(temperature),
-    payoutAmount: getPayoutAmountForMax(pricing.maxPayout, temperature),
+    payoutTier: getPayoutTier(temperature, state || 'default'),
+    payoutAmount: getPayoutAmountForMax(pricing.maxPayout, temperature, state || 'default'),
     source: 'OpenWeather',
   };
 }
@@ -255,7 +261,7 @@ async function resolveLocation({ lat, lng, city, user }) {
     };
   }
 
-  const searchTerm = city || user?.city || 'Jaipur';
+  const searchTerm = `${city || user?.city || 'Jaipur'}, India`;
   const data = await requestJson(OPEN_METEO_GEOCODING_URL, {
     name: searchTerm,
     count: 1,
@@ -278,8 +284,9 @@ async function resolveLocation({ lat, lng, city, user }) {
 }
 
 function buildHeatwaveResponse(fallback, user = {}) {
+  const threshold = getThreshold(user?.state || 'default');
   const pricing = resolvePricing(user?.state, fallback.city || user?.city);
-  const payoutTier = getPayoutTier(fallback.temperature);
+  const payoutTier = getPayoutTier(fallback.temperature, user?.state || 'default');
 
   return {
     temperature: fallback.temperature,
@@ -293,11 +300,12 @@ function buildHeatwaveResponse(fallback, user = {}) {
     city: fallback.city,
     region: fallback.region,
     country: fallback.country,
-    isHeatwave: fallback.temperature >= HEATWAVE_THRESHOLD,
-    heatwaveThreshold: HEATWAVE_THRESHOLD,
+    isHeatwave: fallback.temperature >= threshold,
+    heatwaveThreshold: threshold,
+    weatherIcon: fallback.weatherIcon || getWeatherIconByCode(0),
     pricing,
     payoutTier,
-    payoutAmount: getPayoutAmountForMax(pricing.maxPayout, fallback.temperature),
+    payoutAmount: getPayoutAmountForMax(pricing.maxPayout, fallback.temperature, user?.state || 'default'),
     timestamp: fallback.timestamp,
     source: 'Open-Meteo',
   };
@@ -348,6 +356,23 @@ function getWeatherCodeLabel(code) {
   };
 
   return labels[code] || 'Unknown';
+}
+
+function getWeatherIconByCode(code) {
+  // Map Open-Meteo WMO codes to OpenWeatherMap-style icons
+  const mapping = {
+    0: '01d', // Clear
+    1: '02d', 2: '02d', // Partly cloudy
+    3: '03d', // Overcast
+    45: '50d', 48: '50d', // Fog
+    51: '09d', 53: '09d', 55: '09d', // Drizzle
+    61: '10d', 63: '10d', 65: '10d', // Rain
+    71: '13d', 73: '13d', 75: '13d', // Snow
+    80: '09d', 81: '09d', 82: '09d', // Showers
+    95: '11d', 96: '11d', 99: '11d', // Thunderstorm
+  };
+  const icon = mapping[code] || '01d';
+  return `https://openweathermap.org/img/wn/${icon}@2x.png`;
 }
 
 function describeError(error) {

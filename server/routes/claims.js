@@ -70,6 +70,17 @@ router.post(
         });
       }
 
+      // Enforce 48-hour waiting period to prevent "Just-in-Time" insurance fraud
+      const activationDelay = Date.now() - new Date(user.insuranceActivationDate).getTime();
+      const fortyEightHours = 48 * 60 * 60 * 1000;
+      if (activationDelay < fortyEightHours) {
+        const remainingHours = Math.ceil((fortyEightHours - activationDelay) / (60 * 60 * 1000));
+        return res.status(403).json({
+          error: `Anti-Fraud Policy: Your coverage has a 48-hour "Cooling-off" period. You can file claims in ${remainingHours} hours.`,
+          code: 'COOLING_OFF_PERIOD',
+        });
+      }
+
       // State mismatch check: if claim location state != registered state, block it
       const claimState = req.body.location?.state || req.body.weather?.state || '';
       const userState = (user.state || '').toLowerCase().trim();
@@ -85,10 +96,12 @@ router.post(
         });
       }
 
+      const threshold = getThreshold(userState || 'Rajasthan');
+
       const ambientTemp = req.body.weather.ambientTemp;
-      if (ambientTemp < 45) {
+      if (ambientTemp < threshold) {
         return res.status(400).json({
-          error: `Temperature ${ambientTemp}C is below heatwave threshold (45C). Claim not applicable.`,
+          error: `Temperature ${ambientTemp}C is below heatwave threshold (${threshold}C) for ${userState}. Claim not applicable.`,
           code: 'BELOW_THRESHOLD',
         });
       }
@@ -154,8 +167,8 @@ router.post(
       }
 
       const pricing = resolvePricing(user.state, weather.city || location.city || user.city);
-      const payoutTier = getPayoutTier(ambientTemp);
-      const payoutAmount = getPayoutAmountForMax(pricing.maxPayout, ambientTemp);
+      const payoutTier = getPayoutTier(ambientTemp, user.state);
+      const payoutAmount = getPayoutAmountForMax(pricing.maxPayout, ambientTemp, user.state);
       const sensorIntegrity = evaluateSensorIntegrity(sensorData);
 
       let status = 'pending';
@@ -233,7 +246,7 @@ router.post(
           rawPrediction: weatherOracle?.raw_prediction ?? null,
           modelVersion: weatherOracle?.model_version || 'weather_oracle_v1',
         },
-        heatwaveTriggered: ambientTemp >= 45,
+        heatwaveTriggered: ambientTemp >= threshold,
         triggerTemp: ambientTemp,
       });
 

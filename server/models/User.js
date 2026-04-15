@@ -103,6 +103,11 @@ const userSchema = new mongoose.Schema(
     totalClaimsSubmitted: { type: Number, default: 0 },
     totalPayoutsReceived: { type: Number, default: 0 },
 
+    // Tracking for Zero-Touch Claims (IRDAI Fairness Logic)
+    heatwaveExceedanceCount: { type: Number, default: 0 }, // hours above threshold
+    lastAutoClaimDate: { type: Date },
+    insuranceActivationDate: { type: Date }, // To enforce 2-day "Cooling-off" period
+
     role: { type: String, enum: ['user', 'admin'], default: 'user' },
     isActive: { type: Boolean, default: true },
     lastLogin: Date,
