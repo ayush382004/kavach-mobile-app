@@ -1,95 +1,176 @@
-# KavachForWork
+🛡️ KavachForWork
+Climate-Adaptive Parametric Insurance for India’s Gig Workforce
 
-KavachForWork is a mobile-first safety and climate-risk app for outdoor workers. This repo contains:
+KavachForWork is an AI-powered micro-insurance platform that provides instant financial protection to gig workers against climate disruptions like heatwaves, humidity, and air pollution.
 
-- `client/` - React + Vite frontend
-- `server/` - Node.js + Express API
-- `ai/` - FastAPI fraud/verification service
-- `mobile/` - Capacitor Android wrapper
+We’re not insuring orders—we’re insuring India’s digital backbone.
 
-## Before GitHub
+🚨 Problem
+India’s 7.7M+ gig workers lose income due to extreme climate conditions where no work = no pay.
+Traditional insurance fails because it:
 
-- Keep `.env` private. It is already ignored.
-- Use `.env.example` as the public template.
-- Do not commit Android keystores, MongoDB secrets, API keys, or SMS credentials.
+Does not cover income loss
 
-## Local Run
+Requires manual claims
 
-Prerequisites:
+Is not real-time
 
-- Node.js 20+
-- Python 3.11+
-- MongoDB Atlas or local MongoDB
+👉 Result: Workers must choose between health and income.
 
-Install:
+💡 Solution
+KavachForWork uses a parametric insurance model where payouts are:
 
-```bash
-npm run install:all
-cd ai && pip install -r requirements.txt
-```
+Automatically triggered by climate data
 
-Create `.env` from `.env.example`, then start:
+Verified using AI + sensor signals
 
-```bash
-npm run dev
-```
+Instantly credited via UPI
 
-Default local URLs:
+⚙️ How It Works
+User registers and verifies location
 
-- Frontend: `http://localhost:5173`
-- Backend: `http://localhost:5000`
-- AI service: `http://localhost:8000`
+Activates shield via micro-premium
 
-## Hosting Plan
+System monitors weather in real time
 
-Recommended split:
+Trigger condition is detected (e.g., extreme heat)
 
-- `client/` -> Vercel or Netlify
-- `server/` -> Render, Railway, or VPS
-- `ai/` -> Render or Railway
-- MongoDB -> MongoDB Atlas
+AI verifies authenticity using sensor data
 
-Update these env values when hosting:
+💸 Instant payout is credited
 
-- `CLIENT_URL`
-- `AI_SERVICE_URL`
-- `MONGODB_URI`
-- `JWT_SECRET`
-- `OPENWEATHER_API_KEY` (optional)
-- `GEMINI_API_KEY` (optional, for chatbot)
-- `TWILIO_*` if using real OTP SMS
+🚀 Key Features
+🛡️ Shield Activation with micro-premium
 
-Weather and location notes:
+🌡️ Climate-based automatic payouts
 
-- Weather works without any weather API key because the backend falls back to Open-Meteo.
-- `OPENWEATHER_API_KEY` is optional and improves weather coverage.
-- Live location does not need a separate key. The app uses browser/native geolocation and BigDataCloud reverse geocoding.
+⚡ Instant UPI settlement
 
-## Android APK
+🧠 AI-powered fraud detection
 
-This repo already includes a Capacitor Android project in `mobile/android`.
+📱 Sensor-based verification
 
-Build steps:
+🌍 Real-time weather tracking
 
-```bash
-cd client && npm run build
-cd ../mobile && npm run sync
-cd android && .\gradlew assembleDebug
-```
+📊 Weather Oracle dashboard
 
-Expected debug APK output:
+💰 Wallet & bonus system
 
-```text
-mobile/android/app/build/outputs/apk/debug/app-debug.apk
-```
+🔄 Automated premium deduction
 
-Requirements for APK build:
+🤖 Kavach AI assistant (24/7 support)
 
-- Java installed
-- Android SDK installed
-- `ANDROID_HOME` or `ANDROID_SDK_ROOT` set
+🧠 AI Fraud Detection
+Our system prevents misuse using multi-signal validation:
 
-## Notes
+Example:
 
-- Forgot-password OTP is wired for Twilio, with fallback/mock behavior when credentials are missing.
-- The mobile app uses Capacitor plus a native Android plugin for device/sensor access.
+
+API Temp → 47°C
+Battery Temp → 25°C
+👉 AI Result:
+
+
+FRAUD DETECTED (Indoor Environment)
+We analyze:
+
+Battery temperature
+
+Screen brightness
+
+GPS consistency
+
+Altitude variance
+
+Device activity patterns
+
+📱 Real Use Case
+1️⃣ Heatwave Trigger
+
+Temperature → 45°C+
+Condition → 3 days continuous heat
+2️⃣ System Response
+AI verifies outdoor exposure
+
+Claim approved
+
+3️⃣ Instant Payout
+
++ ₹200 credited to wallet
+📈 Business Potential
+KavachForWork enables a new category of AI-driven micro-insurance:
+
+✔ Low-cost coverage
+✔ Instant payouts
+✔ Fraud-resistant system
+✔ Highly scalable
+
+Target Sectors:
+Gig workers
+
+Delivery platforms
+
+Agricultural labor
+
+Construction workers
+
+🔐 Adversarial Defense & Anti-Spoofing
+🚨 Critical Upgrade: Multi-Layer Trust System
+GPS alone is no longer trusted due to spoofing risks.
+
+🛡️ Our Defense Strategy:
+Sensor fusion (battery + motion + brightness)
+
+Behavioral pattern analysis
+
+Cross-verification with weather APIs
+
+AI anomaly detection
+
+👉 Ensures only genuine claims are rewarded
+
+🏗️ Tech Stack
+Frontend & Mobile
+React.js + Vite
+
+Capacitor (Android wrapper)
+
+Backend
+Node.js + Express
+
+Socket.io (real-time sync)
+
+AI Service
+FastAPI (Python)
+
+Scikit-Learn (Random Forest)
+
+Data Sources
+OpenWeather API
+
+Open-Meteo API
+
+OpenAQ API
+
+Database
+MongoDB Atlas
+
+Automation
+Node-Cron
+
+Payments
+Razorpay / UPI
+
+🔮 Future Improvements
+Satellite-based heat verification
+
+Blockchain-based claim transparency
+
+IoT wearable integration
+
+AI-based city risk prediction
+
+Government disaster API integration
+
+🏁 Conclusion
+KavachForWork transforms climate risk into real-time financial protection, ensuring gig workers are never left without support during extreme conditions.
