@@ -215,6 +215,13 @@ If you like this project, give it a ⭐ on GitHub!
 
 ---
 
+## Pitch Deck
+
+> https://drive.google.com/file/d/1kweQpUtAiEJhseuLCoZ2pvIsDnASY0cc/view
+
+---
+
+
 ## 🏁 Final Thought
 
 > **Kavach transforms climate risk into real-time financial security.**
